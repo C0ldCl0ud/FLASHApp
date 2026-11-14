@@ -32,7 +32,7 @@ from src.workflow.FileManager import FileManager
 from src import analysis, former_examples, sample_type
 from openms_insight import StateManager
 from src.render.render import _state_manager, render_grid
-from src.render import teaching, topdown_layout
+from src.render import topdown_layout
 from src.render.layout_editor.catalog import MAX_EXPERIMENTS
 from src.layout_manager import DatasetKind, ViewerSpec, show_dataset, show_viewer
 from src.render import missing_analysis
@@ -186,7 +186,6 @@ def top_buttons(ctx):
     add_files_menu(ctx.dataset, runs=ctx.members if comparison else None)
     if not comparison and downloadable:
         result_download.viewer_button(file_manager, ctx.dataset if ctx.dataset in downloadable else None)
-    teaching.button()
 
 
 def no_results():

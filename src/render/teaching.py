@@ -1,8 +1,7 @@
-"""What each component of the Viewer shows and how to use it: the tutorial mode.
+"""What each component of the Viewer shows and how to use it.
 
-With tutorial mode on (🎓 beside the experiment selector), every component shows
-a ? beside its title whose tooltip is its text here. Off, the components carry no
-explanations at all. Names are the catalog's (``layout_editor/catalog.py``).
+Every component shows an info icon at its top left whose tooltip is its text
+here. Names are the catalog's (``layout_editor/catalog.py``).
 
 ``help()`` reads the component being drawn from a context variable that
 ``drawing(name)`` sets, so the builders need not pass their own name down; it
@@ -14,9 +13,6 @@ sessions never see each other's component.
 from contextlib import contextmanager
 from contextvars import ContextVar
 
-import streamlit as st
-
-TUTORIAL_KEY = 'flash_viewer_tutorial'
 
 _current: ContextVar = ContextVar('flash_viewer_component', default=None)
 
@@ -93,14 +89,6 @@ COMPONENTS = {
 }
 
 
-def tutorial() -> bool:
-    return bool(st.session_state.get(TUTORIAL_KEY, False))
-
-
-def flip() -> None:
-    st.session_state[TUTORIAL_KEY] = not tutorial()
-
-
 @contextmanager
 def drawing(name):
     """Draw component ``name``: the first ``help()`` meanwhile returns its text,
@@ -117,9 +105,7 @@ def drawing(name):
 
 
 def help(name=None):  # pylint: disable=redefined-builtin
-    """The tutorial text of ``name`` (default: the component being drawn), None when tutorial mode is off."""
-    if not tutorial():
-        return None
+    """The explanation of ``name`` (default: the component being drawn, once per component)."""
     if name is not None:
         return COMPONENTS.get(name)
     current = _current.get()
@@ -128,13 +114,3 @@ def help(name=None):  # pylint: disable=redefined-builtin
     current[1] = True
     return COMPONENTS.get(current[0])
 
-
-def button(key='flash_viewer_tutorial_button'):
-    """🎓 beside the experiment selector: tutorial mode on or off."""
-    on = tutorial()
-    st.button(
-        '🎓', key=key, on_click=flip, type='primary' if on else 'secondary',
-        help=("Tutorial mode is on: the ? beside a component's title says what it shows and how to use it. "
-              "Click to hide them.") if on else
-        "Tutorial mode: show a ? beside each component's title that says what it shows and how to use it.",
-    )
