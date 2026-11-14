@@ -1062,82 +1062,154 @@ def render_cell(comp_name, session, state_manager, key, height=None):
 
 # -- settings ---------------------------------------------------------------
 
-def settings_form(session, container=None):
-    """The design (condition and replicate per run) and the analysis settings
-    of a comparison. Returns True when they were saved."""
+def _sample_step(session, form):
+    """1. Samples and conditions, and the level compared."""
+    st.caption(f'{_sample(session)}s with the same condition are replicates. Untick **Compared** to leave '
+               f'a {_sample(session).lower()} out; a {_sample(session).lower()} without a condition is left out too.')
+    hidden = set(session.hidden)
+    table = session.design().to_pandas()
+    table.insert(0, 'compared', [s not in hidden for s in table['sample']])
+    form['design'] = st.data_editor(
+        table,
+        column_config={
+            'compared': st.column_config.CheckboxColumn('Compared', width='small'),
+            'sample': st.column_config.TextColumn(_sample(session), disabled=True),
+            'condition': st.column_config.TextColumn('Condition'),
+            'replicate': st.column_config.NumberColumn('Replicate', min_value=1, step=1),
+        },
+        hide_index=True, use_container_width=True, key=f'{session.dataset_id}_design_editor',
+    )
+    form['level'] = st.segmented_control(
+        'Compare', [l for l in session.levels], default=session.level,
+        format_func=lambda l: LEVEL_NAMES[l], key=f'{session.dataset_id}_level_choice',
+        help='Proteoforms and proteins need identifications (FLASHTnT).',
+    ) or session.level
+
+
+def _choice(session, form, label, options, setting, column=st, help=None):
+    value = session.settings[setting]
+    form[setting] = column.selectbox(label, options, index=options.index(value) if value in options else 0,
+                                     key=f'{session.dataset_id}_{setting}', help=help)
+    return form[setting]
+
+
+def _filter_step(session, form):
+    """2. Which features are compared."""
+    st.caption('Features measured in too few samples, or barely at all, are left out before the test.')
+    a, b = st.columns(2)
+    method = _choice(session, form, 'Filter by', diff.FILTER_METHODS, 'postproc-filter-method', a)
+    setting, label = {
+        'Low Repeatability': ('postproc-filter-max-missing', 'Max missing ratio (%)'),
+        'Low Abundance': ('postproc-filter-abundance-percentile', 'Threshold percentile (%)'),
+        'Low Variance': ('postproc-filter-variance-percentile', 'Threshold percentile (%)'),
+    }[method]
+    form[setting] = b.slider(label, 0.0, 100.0, float(session.settings[setting]), 5.0,
+                             key=f'{session.dataset_id}_{setting}')
+
+
+def _missing_step(session, form):
+    """3. How missing values are filled in."""
+    st.caption('Values missing at random are filled from the condition; values missing because they are '
+               'below the detection limit get a small value.')
+    a, b = st.columns(2)
+    impute = _choice(session, form, 'Why are values missing?', diff.IMPUTE_CLASSES, 'postproc-impute-class', a)
+    if impute.startswith('MAR'):
+        _choice(session, form, 'Fill with the condition', diff.MAR_STRATEGIES, 'postproc-impute-mar-strategy', b)
+    else:
+        _choice(session, form, 'Smallest value of', diff.MNAR_SCOPES, 'postproc-impute-mnar-scope', b)
+
+
+def _normalize_step(session, form):
+    """4. Transformation, normalization and scaling."""
+    st.caption('Normalization lines up the samples, so differences come from biology rather than loading.')
+    a, b, c = st.columns(3)
+    _choice(session, form, 'Transformation', diff.TRANSFORMS, 'postproc-transform', a)
+    _choice(session, form, 'Normalization', diff.NORMALIZATIONS, 'postproc-normalization', b)
+    _choice(session, form, 'Scaling', diff.SCALINGS, 'postproc-scaling', c)
+
+
+def _test_step(session, form):
+    """5. The test, its correction and what counts as a change."""
     used = session.settings
-    with container if container is not None else st.container():
-        st.markdown(f'**{_sample(session)}s and conditions**')
-        st.caption(f'{_sample(session)}s with the same condition are replicates. Untick **Compared** to leave '
-                   f'a {_sample(session).lower()} out; a {_sample(session).lower()} without a condition is left out too.')
-        hidden = set(session.hidden)
-        table = session.design().to_pandas()
-        table.insert(0, 'compared', [s not in hidden for s in table['sample']])
-        design = st.data_editor(
-            table,
-            column_config={
-                'compared': st.column_config.CheckboxColumn('Compared', width='small'),
-                'sample': st.column_config.TextColumn(_sample(session), disabled=True),
-                'condition': st.column_config.TextColumn('Condition'),
-                'replicate': st.column_config.NumberColumn('Replicate', min_value=1, step=1),
-            },
-            hide_index=True, use_container_width=True, key=f'{session.dataset_id}_design_editor',
-        )
-        level = st.segmented_control(
-            'Compare', [l for l in session.levels], default=session.level,
-            format_func=lambda l: LEVEL_NAMES[l], key=f'{session.dataset_id}_level_choice',
-            help='Proteoforms and proteins need identifications (FLASHTnT).',
-        ) or session.level
-        st.markdown('**Calling a change**')
-        c1, c2 = st.columns(2)
-        fc = c1.number_input('Minimum |log2 fold change|', 0.0, 5.0, float(used.get('fc-cutoff', FC_CUTOFF)), 0.1,
-                             key=f'{session.dataset_id}_fc', help='1 = at least twice (or half) as abundant.')
-        padj = c2.number_input('Maximum adjusted p-value', 0.0001, 0.5, float(used.get('padj-cutoff', P_CUTOFF)), 0.005,
-                               format='%.4f', key=f'{session.dataset_id}_padj')
-        chosen = {}
-        with st.expander('Analysis steps (filter, missing values, normalization, test)'):
-            def choice(label, options, setting, column=st, help=None):
-                value = used[setting]
-                return column.selectbox(label, options, index=options.index(value) if value in options else 0,
-                                        key=f'{session.dataset_id}_{setting}', help=help)
-            a, b = st.columns(2)
-            method = choice('1. Filter by', diff.FILTER_METHODS, 'postproc-filter-method', a)
-            chosen['postproc-filter-method'] = method
-            setting, label = {
-                'Low Repeatability': ('postproc-filter-max-missing', 'Max missing ratio (%)'),
-                'Low Abundance': ('postproc-filter-abundance-percentile', 'Threshold percentile (%)'),
-                'Low Variance': ('postproc-filter-variance-percentile', 'Threshold percentile (%)'),
-            }[method]
-            chosen[setting] = b.slider(label, 0.0, 100.0, float(used[setting]), 5.0, key=f'{session.dataset_id}_{setting}')
-            a, b = st.columns(2)
-            impute = choice('2. Why are values missing?', diff.IMPUTE_CLASSES, 'postproc-impute-class', a)
-            chosen['postproc-impute-class'] = impute
-            if impute.startswith('MAR'):
-                chosen['postproc-impute-mar-strategy'] = choice('Fill with the condition', diff.MAR_STRATEGIES,
-                                                                'postproc-impute-mar-strategy', b)
-            else:
-                chosen['postproc-impute-mnar-scope'] = choice('Smallest value of', diff.MNAR_SCOPES,
-                                                              'postproc-impute-mnar-scope', b)
-            a, b, c = st.columns(3)
-            chosen['postproc-transform'] = choice('3. Transformation', diff.TRANSFORMS, 'postproc-transform', a)
-            chosen['postproc-normalization'] = choice('Normalization', diff.NORMALIZATIONS, 'postproc-normalization', b)
-            chosen['postproc-scaling'] = choice('Scaling', diff.SCALINGS, 'postproc-scaling', c)
-            a, b = st.columns(2)
-            n_conditions = max(len({c for c in design['condition'] if str(c).strip()}), 2)
-            chosen['postproc-stat-test'] = choice('4. Test', diff.test_options(n_conditions), 'postproc-stat-test', a,
-                                                  help='limma_like: moderated t-test (recommended).')
-            chosen['postproc-fdr'] = choice('Correction', diff.FDR_METHODS, 'postproc-fdr', b)
-        if st.button('Apply', type='primary', key=f'{session.dataset_id}_apply'):
-            compared = [str(s) for s, keep in zip(design['sample'], design['compared']) if keep]
-            if len(compared) < 2:
-                st.error(f'A comparison needs at least two {_sample(session).lower()}s.')
-                return False
-            frame = pl.from_pandas(design.drop(columns='compared')).with_columns(
-                pl.col('condition').fill_null('').cast(pl.Utf8).str.strip_chars(),
-                pl.col('replicate').fill_null(1).cast(pl.Int64),
-            )
-            session.save_design(frame)
-            session.save_settings({**used, **chosen, 'level': level, 'fc-cutoff': fc, 'padj-cutoff': padj,
-                                   'hidden': [s for s in session.all_runs if s not in compared]})
+    a, b = st.columns(2)
+    design = form.get('design')
+    conditions = design['condition'] if design is not None else session.design()['condition']
+    n_conditions = max(len({c for c in conditions if str(c).strip()}), 2)
+    _choice(session, form, 'Test', diff.test_options(n_conditions), 'postproc-stat-test', a,
+            help='limma_like: moderated t-test (recommended).')
+    _choice(session, form, 'Correction', diff.FDR_METHODS, 'postproc-fdr', b)
+    st.markdown('**Calling a change**')
+    c1, c2 = st.columns(2)
+    form['fc-cutoff'] = c1.number_input('Minimum |log2 fold change|', 0.0, 5.0, float(used.get('fc-cutoff', FC_CUTOFF)),
+                                        0.1, key=f'{session.dataset_id}_fc',
+                                        help='1 = at least twice (or half) as abundant.')
+    form['padj-cutoff'] = c2.number_input('Maximum adjusted p-value', 0.0001, 0.5,
+                                          float(used.get('padj-cutoff', P_CUTOFF)), 0.005,
+                                          format='%.4f', key=f'{session.dataset_id}_padj')
+
+
+# Widget keys of the steps, without the dataset id
+_STEP_SETTINGS = (
+    'postproc-filter-method', 'postproc-filter-max-missing', 'postproc-filter-abundance-percentile',
+    'postproc-filter-variance-percentile', 'postproc-impute-class', 'postproc-impute-mar-strategy',
+    'postproc-impute-mnar-scope', 'postproc-transform', 'postproc-normalization', 'postproc-scaling',
+    'postproc-stat-test', 'postproc-fdr', 'fc', 'padj',
+)
+
+
+def comparison_steps(session):
+    """The steps of Edit comparison (label, draw), what **Done** saves and what
+    **Start over** resets: ``(steps, apply, reset)``.
+
+    ``apply()`` saves the design and settings drawn in this run and returns
+    False (after an error) when fewer than two samples are compared.
+    """
+    form = {}
+    sample = _sample(session)
+    steps = [
+        (f'1. {sample}s and conditions', lambda: _sample_step(session, form)),
+        ('2. Filter', lambda: _filter_step(session, form)),
+        ('3. Missing values', lambda: _missing_step(session, form)),
+        ('4. Normalize', lambda: _normalize_step(session, form)),
+        ('5. Test', lambda: _test_step(session, form)),
+    ]
+
+    def apply():
+        design = form.get('design')
+        if design is None:
             return True
+        compared = [str(s) for s, keep in zip(design['sample'], design['compared']) if keep]
+        if len(compared) < 2:
+            st.error(f'A comparison needs at least two {sample.lower()}s.')
+            return False
+        frame = pl.from_pandas(design.drop(columns='compared')).with_columns(
+            pl.col('condition').fill_null('').cast(pl.Utf8).str.strip_chars(),
+            pl.col('replicate').fill_null(1).cast(pl.Int64),
+        )
+        chosen = {k: v for k, v in form.items() if k not in ('design',)}
+        session.save_design(frame)
+        session.save_settings({**session.settings, **chosen,
+                               'hidden': [s for s in session.all_runs if s not in compared]})
+        return True
+
+    def reset():
+        """The recommended analysis settings; the conditions and the level stay."""
+        from src.parse.differential import default_settings  # pylint: disable=import-outside-toplevel
+        used = session.settings
+        session.save_settings({**default_settings(), 'level': used.get('level'), 'hidden': used.get('hidden', [])})
+        for name in _STEP_SETTINGS:
+            st.session_state.pop(f'{session.dataset_id}_{name}', None)
+
+    return steps, apply, reset
+
+
+def settings_form(session, container=None):
+    """Every step of Edit comparison on one page, with **Apply**. Returns True when saved."""
+    steps, apply, _ = comparison_steps(session)
+    with container if container is not None else st.container():
+        for label, draw in steps:
+            st.markdown(f'**{label}**')
+            draw()
+        if st.button('Apply', type='primary', key=f'{session.dataset_id}_apply'):
+            return apply()
     return False
