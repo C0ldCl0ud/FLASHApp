@@ -711,6 +711,20 @@ def _set(state, identifier, value):
         state.set_selection(identifier, value)
 
 
+def _no_spectrum_note(frame, form, runs):
+    """Why no PrSM of the picked identification can be shown: the runs that
+    identified it, and that their results are not in this workspace."""
+    picked = frame if form is None else frame.filter(pl.col('RowIndex') == form)
+    found = [run for run in picked['Run'].unique(maintain_order=True).to_list() if run]
+    missing = [run for run in found if run not in runs]
+    if not missing:
+        return 'None of the PrSMs of this identification has its spectrum in this workspace.'
+    names = ', '.join(missing)
+    return (f"This identification was found in {names}, whose results are not in this workspace. "
+            "The comparison keeps every run's PrSMs, but a spectrum is in its run's own results. "
+            'Pick an identification with Spectrum: yes in the PrSM table, or process that run here.')
+
+
 def _selected_prsm(session, state_manager):
     """(dataset id, state) of the run of the PrSM picked in the PrSM table,
     its state pointing at that PrSM; None (with a note) otherwise.
@@ -733,7 +747,7 @@ def _selected_prsm(session, state_manager):
     if row.height == 0:
         row = shown.head(1)
     if row.height == 0:
-        st.info('None of the PrSMs of this identification has its spectrum in this workspace.')
+        st.info(_no_spectrum_note(frame, form, runs))
         return None
     prsm = row.row(0, named=True)
     run_ds = runs[prsm['Run']]
