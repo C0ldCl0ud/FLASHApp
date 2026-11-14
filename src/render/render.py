@@ -41,7 +41,7 @@ from src.render.fragmentation import mzml_scan_methods
 from src.quant import isobaric
 from src.common.plot_style import PEAK, PICKED, spectrum_styling
 from src.render.layout_editor.catalog import DECONV_COMPONENTS, ISOBARIC_COMPONENTS, TNT_COMPONENTS
-from src.render import proteoform_edits
+from src.render import proteoform_edits, teaching
 from src.render.sequence import getFragmentDataFromSeq
 from src.render.structure import (
     StructureStore, download_enabled, get_structure, structure_dir, structure_key,
@@ -1543,7 +1543,7 @@ def _render_qc(plots, file_manager, dataset_id, tool, state_manager, key, per_ro
             with columns[offset]:
                 component(
                     key=f'{key}_{row_start + offset}', state_manager=state_manager,
-                    height=320 if per_row > 1 else 280,
+                    height=320 if per_row > 1 else 280, help=teaching.help(),
                 )
 
 
@@ -1615,7 +1615,7 @@ def _render_mass_shifts(file_manager, dataset_id, state_manager, key):
             reclick='deselect', default_row=-1, scroll_position=SCROLL, layout='fitColumns',
         ),
     )
-    plot(key=f'{key}_histogram', state_manager=state_manager, height=360)
+    plot(key=f'{key}_histogram', state_manager=state_manager, height=360, help=teaching.help())
     shift_table(key=f'{key}_shifts', state_manager=state_manager,
                 height=min(TABLE_HEIGHT, 90 + 34 * groups.height))
 
@@ -1638,6 +1638,12 @@ def _inspect_button(component, comp_name, dataset_id, on_inspect):
 
 def _render_cell(comp_name, file_manager, dataset_id, tool, state_manager, key, on_missing=None,
                  row=None, on_inspect=None):
+    with teaching.drawing(comp_name):
+        _draw_cell(comp_name, file_manager, dataset_id, tool, state_manager, key, on_missing, row, on_inspect)
+
+
+def _draw_cell(comp_name, file_manager, dataset_id, tool, state_manager, key, on_missing=None,
+               row=None, on_inspect=None):
     row = row or [comp_name]
     per_row = 2 if len(row) == 1 else 1
     missing = []
@@ -1691,7 +1697,7 @@ def _render_cell(comp_name, file_manager, dataset_id, tool, state_manager, key, 
             st.info(f'This dataset has no data for this view ({e}).')
         return
     _inspect_button(component, comp_name, dataset_id, on_inspect)
-    component(key=key, state_manager=state_manager, **render_args)
+    component(key=key, state_manager=state_manager, **{'help': teaching.help(), **render_args})
 
 
 def _state_manager(tool, identifier, dataset_id):

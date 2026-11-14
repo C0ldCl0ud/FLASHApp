@@ -228,10 +228,6 @@ def _render_all(file_manager, scope, state_manager, background, key, what, unive
     if not annotated:
         st.info(f'No protein among {what} has a GO annotation at MyGene.info.')
         return
-    st.caption(
-        f'GO annotations of {what}: {annotated} of {len(set(background))} proteins have GO terms '
-        '(MyGene.info, by UniProt accession).'
-    )
     if not any(t is not None and t.height for t in tables.values()):
         st.info('No protein has GO terms.')
         return
@@ -252,8 +248,6 @@ def _render(file_manager, scope, state_manager, identifier, selected, background
             'Clear selection', key=f'{key}_clear', on_click=_clear, args=(state_manager, identifier),
             use_container_width=True,
         )
-    else:
-        st.info(picked_line)
     if not selected:
         if what:
             _render_all(file_manager, scope, state_manager, background, key, what, universe)
@@ -265,11 +259,6 @@ def _render(file_manager, scope, state_manager, identifier, selected, background
         st.info('None of the selected proteins has a GO annotation at MyGene.info.')
         return
     tables = result['categories']
-    st.caption(
-        f"{result['fg_count']} of {result['fg_total']} selected and {result['bg_count']} of "
-        f"{result['bg_total']} background proteins have GO terms (MyGene.info, by UniProt accession). "
-        "One-sided Fisher's exact test, Benjamini-Hochberg adjusted per category."
-    )
     if not any(t is not None and len(t) for t in tables.values()):
         st.info('The selected proteins have no GO terms.')
         return

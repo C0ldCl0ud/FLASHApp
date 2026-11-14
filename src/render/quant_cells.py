@@ -20,7 +20,7 @@ from openms_insight import ClusteredHeatmap, Heatmap, PCAPlot, SeriesPlot, Table
 from src.parse import differential as diff
 from src.quant import qc, sources
 from src.quant.session import LEVEL_NAMES, RESULTS, STATUS_LABELS
-from src.render import comparison_plots, go_terms, insight_data
+from src.render import comparison_plots, go_terms, insight_data, teaching
 from src.render.postprocessing_plots import (
     IMPUTED_COLORS, IMPUTED_SERIES, MISSING_COLORS, MISSING_SERIES, STAGE_COLORS, STAGE_SERIES,
     imputed_value_preview, missingness_vs_intensity, pvalue_histogram, sample_distributions,
@@ -187,15 +187,11 @@ def build_summary(session, state_manager, key, height=None):
     down = significant.filter(pl.col('log2FC') <= -fc).height
     with st.container(key=f'{key}_summary', border=True):
         metrics = st.columns(4)
-        metrics[0].metric(f'{_sample(session)}s compared', len(session.conditions()))
+        metrics[0].metric(f'{_sample(session)}s compared', len(session.conditions()), help=teaching.help())
         metrics[1].metric(f'{_noun(session, True).capitalize()} tested', f'{tested.height:,}',
                           help=f'Of {statistics.height:,}; the others were removed by the filter.')
         metrics[2].metric(f'Higher in {compared}', f'{up:,}')
         metrics[3].metric(f'Lower in {compared}', f'{down:,}')
-        st.caption(
-            f'{compared} vs. {reference}: adjusted p-value ≤ {padj:g} and |log2 fold change| ≥ {fc:g}. '
-            'Change the conditions and cut-offs with **Edit comparison**.'
-        )
 
 
 def _comparison_table(session):
@@ -237,7 +233,7 @@ def build_table(session, state_manager, key, height):
             multi_select={go_terms.COMPARISON_SET: 'Proteoform'},
             reclick=RECLICK,
         ),
-    )(key=key, state_manager=state_manager, height=height)
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
 
 
 def build_volcano(session, state_manager, key, height):
@@ -262,7 +258,7 @@ def build_volcano(session, state_manager, key, height):
             show_threshold_lines=True, threshold_line_style='dash',
             x_label='log2 fold change', y_label='-log10(adjusted p-value)',
         ),
-    )(key=key, state_manager=state_manager, height=height, fc_threshold=fc, p_threshold=padj, max_labels=10)
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help(), fc_threshold=fc, p_threshold=padj, max_labels=10)
 
 
 def build_profile(session, state_manager, key, height):
@@ -284,7 +280,7 @@ def build_profile(session, state_manager, key, height):
             title=f'Abundance per {_sample(session).lower()}', x_label=_sample(session),
             y_label=f"Abundance ({settings['postproc-transform']}, normalized)",
         ),
-    )(key=key, state_manager=state_manager, height=height)
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
 
 
 def _runs_frame(session):
@@ -330,7 +326,9 @@ def build_runs(session, state_manager, key, height):
             title=f'Selected {_noun(session)} per {_sample(session).lower()}', index_field='RowIndex',
             filters={'consensus': 'ConsensusIndex'}, go_to_fields=[], reclick=RECLICK, pagination=False,
         ),
-    )(key=key, state_manager=state_manager, height=height)
+        # Few rows of several columns: all of them shown, never folded into rows
+        render={'collapse_columns': False},
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
 
 
 def _metadata(conditions):
@@ -365,7 +363,7 @@ def build_pca(session, state_manager, key, height):
     except ValueError as e:
         st.info(f'PCA could not be computed: {e}')
         return
-    pca(key=key, state_manager=state_manager, height=height, pc_x=1, pc_y=2)
+    pca(key=key, state_manager=state_manager, height=height, help=teaching.help(), pc_x=1, pc_y=2)
 
 
 def build_heatmap(session, state_manager, key, height):
@@ -383,7 +381,7 @@ def build_heatmap(session, state_manager, key, height):
             intensity_label='Z-score', group_colors=colors,
             multi_select={go_terms.COMPARISON_SET: 'Proteoform'},
         ),
-    )(key=key, state_manager=state_manager, height=height)
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
 
 
 def _frame(session, name):
@@ -444,7 +442,7 @@ def build_id_overlap(session, state_manager, key, height):
             group_colors=condition_colors(set(conditions.values())) if conditions else None,
         ),
         required=[f'quant_{level}'],
-    )(key=key, state_manager=state_manager, height=height)
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
 
 
 def build_id_table(session, state_manager, key, height):
@@ -481,7 +479,7 @@ def build_id_table(session, state_manager, key, height):
             go_to_fields=['label'], row_overview='{label}', interactivity={'quant_form': 'RowIndex'},
         ),
         required=[f'quant_{level}', f'quant_{level}_annotations'],
-    )(key=key, state_manager=state_manager, height=height)
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
 
 
 # -- quality control -------------------------------------------------------
@@ -520,7 +518,7 @@ def build_correlation(session, state_manager, key, height):
             group_colors=condition_colors(set(conditions.values())) if conditions else None,
         ),
         required=[f'quant_{level}'],
-    )(key=key, state_manager=state_manager, height=height)
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
 
 
 def build_cv(session, state_manager, key, height=None):
@@ -700,7 +698,7 @@ def build_id_prsms(session, state_manager, key, height):
         ),
         extra=sorted(sources.run_datasets(session.file_manager, session.manifest).items()),
         required=[f'quant_{level}', 'identifications_tsv'],
-    )(key=key, state_manager=state_manager, height=height)
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
 
 
 def _run_state(session, run_ds, extra=''):
@@ -714,24 +712,31 @@ def _set(state, identifier, value):
 
 
 def _selected_prsm(session, state_manager):
-    """(run name, dataset id, state, scan) of the PrSM picked in the PrSM
-    table, its run's state pointing at it; None (with a note) otherwise."""
+    """(dataset id, state) of the run of the PrSM picked in the PrSM table,
+    its state pointing at that PrSM; None (with a note) otherwise.
+
+    A pick whose spectrum is not in this workspace (its run was compared but
+    its results were not kept), or no pick at all, falls back to the first
+    PrSM of the picked identification that can be shown."""
     from src.render import render
     _, frame = _prsm_frame(session)
     if frame is None or frame.height == 0:
         _no_prsms_note(session)
         return None
-    picked = state_manager.get_selection('quant_prsm')
-    row = frame.filter(pl.col('prsm_row') == picked) if picked is not None else frame.head(0)
+    runs = sources.run_datasets(session.file_manager, session.manifest)
+    shown = frame.filter((pl.col('Spectrum') == 'yes') & pl.col('Run').is_in(list(runs)))
     form = state_manager.get_selection('quant_form')
-    if row.height == 0 or (form is not None and row['RowIndex'][0] != form):
-        st.info('Pick a PrSM in **PrSMs of the selected identification** to see its spectrum here.')
+    if form is not None:
+        shown = shown.filter(pl.col('RowIndex') == form)
+    picked = state_manager.get_selection('quant_prsm')
+    row = shown.filter(pl.col('prsm_row') == picked) if picked is not None else shown.head(0)
+    if row.height == 0:
+        row = shown.head(1)
+    if row.height == 0:
+        st.info('None of the PrSMs of this identification has its spectrum in this workspace.')
         return None
     prsm = row.row(0, named=True)
-    run_ds = sources.run_datasets(session.file_manager, session.manifest).get(prsm['Run'])
-    if run_ds is None:
-        st.info(f"The results of {prsm['Run']} are not in this workspace, so its spectra cannot be shown.")
-        return None
+    run_ds = runs[prsm['Run']]
     hit = sources.prsm_in_run(render.insight_data.proteins(session.file_manager, run_ds).collect(), prsm['Scan'])
     if hit is None:
         st.info(f"Scan {prsm['Scan']} of {prsm['Run']} has no PrSM in the run's own results.")
@@ -741,7 +746,6 @@ def _selected_prsm(session, state_manager):
     _set(state, 'protein', index)
     _set(state, 'scan', scan_idx)
     _set(state, 'pscan', scan_idx)
-    st.caption(f"{prsm['label']}: scan {prsm['Scan']} of {prsm['Run']}")
     return run_ds, state
 
 
@@ -905,7 +909,7 @@ def build_feature_map(session, state_manager, key, height):
             x_label='Retention time (min)', y_label='Monoisotopic mass (Da)',
             intensity_label=f'Detected in ({_sample(session).lower()}s)', colorscale='Viridis',
         ),
-    )(key=key, state_manager=state_manager, height=height)
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
     del long
 
 
@@ -952,7 +956,7 @@ def build_feature_table(session, state_manager, key, height):
             title='Consensus features', go_to_fields=['label'], interactivity={'quant_feature': 'RowIndex'},
             reclick=RECLICK, reset_sort=True,
         ),
-    )(key=key, state_manager=state_manager, height=height)
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
 
 
 def build_feature_profile(session, state_manager, key, height):
@@ -976,7 +980,7 @@ def build_feature_profile(session, state_manager, key, height):
             title=f'Selected feature per {_sample(session).lower()}', filters={'quant_feature': 'RowIndex'},
             pagination=False, default_row_selects=False,
         ),
-    )(key=key, state_manager=state_manager, height=height)
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
 
 
 BUILDERS = {
@@ -1036,7 +1040,8 @@ def render_cell(comp_name, session, state_manager, key, height=None):
     builder, default = BUILDERS[comp_name]
     height = height or default
     try:
-        builder(session, state_manager, key, height)
+        with teaching.drawing(comp_name):
+            builder(session, state_manager, key, height)
     except MissingResult as e:
         st.info(f'This comparison has no data for this view ({e}).')
 

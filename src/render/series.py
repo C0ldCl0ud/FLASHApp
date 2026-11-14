@@ -37,7 +37,7 @@ def _fingerprint(frame: pl.DataFrame, settings: dict) -> str:
     return digest.hexdigest()[:16]
 
 
-def show_series(data, name: str, cache_path, key: str, height=None, state_manager=None, **plot_kwargs):
+def show_series(data, name: str, cache_path, key: str, height=None, state_manager=None, help=None, **plot_kwargs):  # pylint: disable=redefined-builtin
     """Draw ``data`` (polars or pandas) as a ``SeriesPlot``; ``plot_kwargs`` go to it."""
     from openms_insight import SeriesPlot
 
@@ -47,5 +47,8 @@ def show_series(data, name: str, cache_path, key: str, height=None, state_manage
         cache_id=cache_id, cache_path=str(Path(cache_path, 'insight', 'series')), data=frame.lazy(),
         **plot_kwargs,
     )
-    plot(key=key, state_manager=state_manager, height=height or 400)
+    if help is None:
+        from src.render import teaching
+        help = teaching.help()
+    plot(key=key, state_manager=state_manager, height=height or 400, help=help)
     return plot

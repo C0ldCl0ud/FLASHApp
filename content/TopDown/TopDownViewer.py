@@ -32,7 +32,7 @@ from src.workflow.FileManager import FileManager
 from src import analysis, former_examples, sample_type
 from openms_insight import StateManager
 from src.render.render import _state_manager, render_grid
-from src.render import topdown_layout
+from src.render import teaching, topdown_layout
 from src.render.layout_editor.catalog import MAX_EXPERIMENTS
 from src.layout_manager import DatasetKind, ViewerSpec, show_dataset, show_viewer
 from src.render import missing_analysis
@@ -69,17 +69,6 @@ def experiment_layout(index, dataset_id):
     picked = topdown_layout.view_rows(file_manager, workspace, identified, kind, index, labelled)
     if picked is not None:
         return picked
-    if topdown_layout.has_legacy(file_manager, identified):
-        name = 'identified runs' if identified else 'runs deconvolved only'
-        text = f"The layout saved earlier for {name} (the view **{topdown_layout.LEGACY_VIEWS[identified][1]}**)."
-    elif identified:
-        sample = analysis.SAMPLE_LABELS[kind].lower()
-        text = f"Default layout for {sample}, as this run was searched."
-    else:
-        text = "Default layout for a run deconvolved only."
-    if labelled:
-        text += " The reporter ions of its labels are shown below the spectra it selects."
-    st.caption(text + " Pick a view above, or make your own with **+**.")
     return topdown_layout.default_rows(file_manager, identified, kind, index, labelled)
 
 
@@ -197,6 +186,7 @@ def top_buttons(ctx):
     add_files_menu(ctx.dataset, runs=ctx.members if comparison else None)
     if not comparison and downloadable:
         result_download.viewer_button(file_manager, ctx.dataset if ctx.dataset in downloadable else None)
+    teaching.button()
 
 
 def no_results():

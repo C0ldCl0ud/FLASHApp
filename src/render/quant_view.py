@@ -422,8 +422,6 @@ def render(file_manager, dataset_id, rows=None):
                     + (f' over {fractions} runs' if fractions > 1 else ''))
     else:
         compared = f'{len(session.runs)} runs'
-    st.caption(f'Comparing **{LEVEL_NAMES[level].lower()}** of {compared}. '
-               'Switch the level and set the conditions with **Edit comparison**.')
     # Selections are per comparison and level: an index means another entry on another level
     state_manager = StateManager(session_key=f'flash_quant_state_{tool}_{dataset_id}_{level}')
     with defer_reruns():
