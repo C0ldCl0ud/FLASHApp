@@ -11,7 +11,7 @@
 #min_snr: [0.25, 0.25]
 ####################### Parameters ######################
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4217
 TITLE=Scan_4218
 SCANS=4218
@@ -97,7 +97,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4222
 TITLE=Scan_4223
 SCANS=4223
@@ -152,7 +152,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4228
 TITLE=Scan_4229
 SCANS=4229
@@ -222,7 +222,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4234
 TITLE=Scan_4235
 SCANS=4235
@@ -278,7 +278,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4240
 TITLE=Scan_4241
 SCANS=4241
@@ -338,7 +338,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4245
 TITLE=Scan_4246
 SCANS=4246
@@ -392,7 +392,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4250
 TITLE=Scan_4251
 SCANS=4251
@@ -470,7 +470,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4256
 TITLE=Scan_4257
 SCANS=4257
@@ -533,7 +533,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4260
 TITLE=Scan_4261
 SCANS=4261
@@ -588,7 +588,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4266
 TITLE=Scan_4267
 SCANS=4267
@@ -664,7 +664,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4272
 TITLE=Scan_4273
 SCANS=4273
@@ -727,7 +727,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4278
 TITLE=Scan_4279
 SCANS=4279
@@ -781,7 +781,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4283
 TITLE=Scan_4284
 SCANS=4284
@@ -835,7 +835,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4289
 TITLE=Scan_4290
 SCANS=4290
@@ -911,7 +911,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4293
 TITLE=Scan_4294
 SCANS=4294
@@ -976,7 +976,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4298
 TITLE=Scan_4299
 SCANS=4299
@@ -1048,7 +1048,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4303
 TITLE=Scan_4304
 SCANS=4304
@@ -1111,7 +1111,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4308
 TITLE=Scan_4309
 SCANS=4309
@@ -1181,7 +1181,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4312
 TITLE=Scan_4313
 SCANS=4313
@@ -1246,7 +1246,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4318
 TITLE=Scan_4319
 SCANS=4319
@@ -1323,7 +1323,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4324
 TITLE=Scan_4325
 SCANS=4325
@@ -1397,7 +1397,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4328
 TITLE=Scan_4329
 SCANS=4329
@@ -1457,7 +1457,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4333
 TITLE=Scan_4334
 SCANS=4334
@@ -1529,7 +1529,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4339
 TITLE=Scan_4340
 SCANS=4340
@@ -1593,7 +1593,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4344
 TITLE=Scan_4345
 SCANS=4345
@@ -1681,7 +1681,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4349
 TITLE=Scan_4350
 SCANS=4350
@@ -1762,7 +1762,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4353
 TITLE=Scan_4354
 SCANS=4354
@@ -1833,7 +1833,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4358
 TITLE=Scan_4359
 SCANS=4359
@@ -1896,7 +1896,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4362
 TITLE=Scan_4363
 SCANS=4363
@@ -1973,7 +1973,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4367
 TITLE=Scan_4368
 SCANS=4368
@@ -2040,7 +2040,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4373
 TITLE=Scan_4374
 SCANS=4374
@@ -2104,7 +2104,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4378
 TITLE=Scan_4379
 SCANS=4379
@@ -2175,7 +2175,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4382
 TITLE=Scan_4383
 SCANS=4383
@@ -2242,7 +2242,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4387
 TITLE=Scan_4388
 SCANS=4388
@@ -2301,7 +2301,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4393
 TITLE=Scan_4394
 SCANS=4394
@@ -2383,7 +2383,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4399
 TITLE=Scan_4400
 SCANS=4400
@@ -2459,7 +2459,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4404
 TITLE=Scan_4405
 SCANS=4405
@@ -2540,7 +2540,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4409
 TITLE=Scan_4410
 SCANS=4410
@@ -2619,7 +2619,7 @@ LEVEL=1
 END IONS
 
 BEGIN IONS
-FILE_NAME=/__w/FLASHApp/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
+FILE_NAME=/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Label-free_SpikeIn-1x_R1.mzML
 SPECTRUM_ID=4413
 TITLE=Scan_4414
 SCANS=4414
