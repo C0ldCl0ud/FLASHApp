@@ -4,10 +4,10 @@
 |---|---|
 | App | FLASHApp 2.0.0-alpha.11 |
 | Workflow | flashtnt |
-| Started | 2026-11-14 17:59 |
+| Started | 2026-11-14 20:06 |
 | pyOpenMS | 3.6.0 |
 | Python | 3.11.18 |
-| Report written | 2026-11-14 17:59 |
+| Report written | 2026-11-14 20:06 |
 
 ## Software
 
@@ -35,8 +35,8 @@ Every tool that worked on each input file, in order. A tool call that took sever
 
 | Step | Tool | Version | Status | Time | Wrote |
 |---|---|---|---|---|---|
-| 1 | FLASHDeconv | unknown | done | 2 s | out.tsv, spec1.tsv, spec2.tsv, spec3.tsv, spec4.tsv, out_deconv.mzML, quant.tsv, anno_annotated.mzML, toppic_ms1.msalign, toppic_ms2.msalign, toppic_ms1.feature, toppic_ms2.feature |
-| 3 | FLASHTnT (with 1 other file) | unknown | done | 19 s | tags.tsv, protein.tsv, prsms.tsv |
+| 1 | FLASHDeconv | unknown | done | 1 s | out.tsv, spec1.tsv, spec2.tsv, spec3.tsv, spec4.tsv, out_deconv.mzML, quant.tsv, anno_annotated.mzML, toppic_ms1.msalign, toppic_ms2.msalign, toppic_ms1.feature, toppic_ms2.feature |
+| 3 | FLASHTnT (with 1 other file) | unknown | done | 20 s | tags.tsv, protein.tsv, prsms.tsv |
 | 4 | FLASHAnnotator (with 1 other file) | unknown | done | 0 s | annotated.tsv, fragments.tsv |
 
 ### example_database.fasta
@@ -44,7 +44,7 @@ Every tool that worked on each input file, in order. A tool call that took sever
 | Step | Tool | Version | Status | Time | Wrote |
 |---|---|---|---|---|---|
 | 2 | DecoyDatabase | unknown | done | 0 s | database.fasta |
-| 3 | FLASHTnT (with 1 other file) | unknown | done | 19 s | tags.tsv, protein.tsv, prsms.tsv |
+| 3 | FLASHTnT (with 1 other file) | unknown | done | 20 s | tags.tsv, protein.tsv, prsms.tsv |
 | 4 | FLASHAnnotator (with 1 other file) | unknown | done | 0 s | annotated.tsv, fragments.tsv |
 
 ## Tool calls
@@ -53,7 +53,7 @@ Parameters that differ from the tool's defaults.
 
 ### Step 1: FLASHDeconv
 
-Version: unknown · Status: done · Time: 2 s
+Version: unknown · Status: done · Time: 1 s
 
 | Parameter | Value |
 |---|---|
@@ -71,7 +71,7 @@ Version: unknown · Status: done · Time: 0 s
 
 ### Step 3: FLASHTnT
 
-Version: unknown · Status: done · Time: 19 s
+Version: unknown · Status: done · Time: 20 s
 
 | Parameter | Value |
 |---|---|

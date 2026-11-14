@@ -9,7 +9,7 @@
     },
     "few_proteins": true,
     "mzML-files": [
-        "/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Native-identified_GapA_HCD.mzML"
+        "/repo/example-data/workspaces/default/flashtnt/input-files/mzML-files/Native-identified_GapA_HCD.mzML"
     ],
     "_flag_params": {
         "FLASHDeconv": [
@@ -34,5 +34,5 @@
             "algorithm:report_decoy_envelopes"
         ]
     },
-    "fasta-file": "/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/fasta-file/example_database.fasta"
+    "fasta-file": "/repo/example-data/workspaces/default/flashtnt/input-files/fasta-file/example_database.fasta"
 }

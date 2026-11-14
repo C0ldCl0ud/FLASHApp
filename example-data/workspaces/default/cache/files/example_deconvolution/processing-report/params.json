@@ -2,7 +2,7 @@
     "identify": false,
     "quantification": "none",
     "mzML-files": [
-        "/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Deconvolution-only_ProteinMix_LC-MS.mzML"
+        "/repo/example-data/workspaces/default/flashtnt/input-files/mzML-files/Deconvolution-only_ProteinMix_LC-MS.mzML"
     ],
     "_flag_params": {
         "FLASHDeconv": [

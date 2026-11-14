@@ -3,7 +3,7 @@
     "quantification": "isobaric",
     "isobaric-plex": "tmt6plex",
     "mzML-files": [
-        "/home/user/FLASHApp/example-data/workspaces/default/flashtnt/input-files/mzML-files/Isobaric_TMT6_Ecoli-Ratio.mzML"
+        "/repo/example-data/workspaces/default/flashtnt/input-files/mzML-files/Isobaric_TMT6_Ecoli-Ratio.mzML"
     ],
     "_flag_params": {
         "FLASHDeconv": [

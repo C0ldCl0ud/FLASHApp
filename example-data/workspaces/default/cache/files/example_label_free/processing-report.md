@@ -4,10 +4,10 @@
 |---|---|
 | App | FLASHApp 2.0.0-alpha.11 |
 | Workflow | flashtnt |
-| Started | 2026-11-14 18:00 |
+| Started | 2026-11-14 20:06 |
 | pyOpenMS | 3.6.0 |
 | Python | 3.11.18 |
-| Report written | 2026-11-14 18:01 |
+| Report written | 2026-11-14 20:07 |
 
 ## Software
 
@@ -17,7 +17,7 @@
 | DecoyDatabase | unknown |
 | FLASHTnT | unknown |
 | FLASHAnnotator | unknown |
-| FLASHQuantConsensus | 3.6.0-pre-HEAD-2026-11-09 |
+| FLASHQuantConsensus | 3.6.0-pre-FDmerge-2026-11-09 |
 
 ## Settings
 
@@ -36,66 +36,66 @@ Every tool that worked on each input file, in order. A tool call that took sever
 
 | Step | Tool | Version | Status | Time | Wrote |
 |---|---|---|---|---|---|
-| 1 | FLASHDeconv | unknown | done | 4 s | out.tsv, spec1.tsv, spec2.tsv, spec3.tsv, spec4.tsv, out_deconv.mzML, quant.tsv, anno_annotated.mzML, toppic_ms1.msalign, toppic_ms2.msalign, toppic_ms1.feature, toppic_ms2.feature |
-| 3 | FLASHTnT (with 1 other file) | unknown | done | 12 s | tags.tsv, protein.tsv, prsms.tsv |
+| 1 | FLASHDeconv | unknown | done | 2 s | out.tsv, spec1.tsv, spec2.tsv, spec3.tsv, spec4.tsv, out_deconv.mzML, quant.tsv, anno_annotated.mzML, toppic_ms1.msalign, toppic_ms2.msalign, toppic_ms1.feature, toppic_ms2.feature |
+| 3 | FLASHTnT (with 1 other file) | unknown | done | 6 s | tags.tsv, protein.tsv, prsms.tsv |
 | 4 | FLASHAnnotator (with 1 other file) | unknown | done | 0 s | annotated.tsv, fragments.tsv |
-| 21 | FLASHQuantConsensus (with 5 other files) | 3.6.0-pre-HEAD-2026-11-09 | done | 1 s | consensus.tsv, identifications.tsv |
+| 21 | FLASHQuantConsensus (with 5 other files) | 3.6.0-pre-FDmerge-2026-11-09 | done | 0 s | consensus.tsv, identifications.tsv |
 
 ### example_database.fasta
 
 | Step | Tool | Version | Status | Time | Wrote |
 |---|---|---|---|---|---|
 | 2 | DecoyDatabase | unknown | done | 0 s | database.fasta |
-| 3 | FLASHTnT (with 1 other file) | unknown | done | 12 s | tags.tsv, protein.tsv, prsms.tsv |
+| 3 | FLASHTnT (with 1 other file) | unknown | done | 6 s | tags.tsv, protein.tsv, prsms.tsv |
 | 4 | FLASHAnnotator (with 1 other file) | unknown | done | 0 s | annotated.tsv, fragments.tsv |
 | 7 | DecoyDatabase | unknown | done | 0 s | database.fasta |
-| 8 | FLASHTnT (with 1 other file) | unknown | done | 15 s | tags.tsv, protein.tsv, prsms.tsv |
+| 8 | FLASHTnT (with 1 other file) | unknown | done | 7 s | tags.tsv, protein.tsv, prsms.tsv |
 | 9 | FLASHAnnotator (with 1 other file) | unknown | done | 0 s | annotated.tsv, fragments.tsv |
 | 12 | DecoyDatabase | unknown | done | 0 s | database.fasta |
-| 13 | FLASHTnT (with 1 other file) | unknown | done | 10 s | tags.tsv, protein.tsv, prsms.tsv |
+| 13 | FLASHTnT (with 1 other file) | unknown | done | 6 s | tags.tsv, protein.tsv, prsms.tsv |
 | 14 | FLASHAnnotator (with 1 other file) | unknown | done | 0 s | annotated.tsv, fragments.tsv |
 | 17 | DecoyDatabase | unknown | done | 0 s | database.fasta |
-| 18 | FLASHTnT (with 1 other file) | unknown | done | 15 s | tags.tsv, protein.tsv, prsms.tsv |
+| 18 | FLASHTnT (with 1 other file) | unknown | done | 8 s | tags.tsv, protein.tsv, prsms.tsv |
 | 19 | FLASHAnnotator (with 1 other file) | unknown | done | 0 s | annotated.tsv, fragments.tsv |
 
 ### Label-free_SpikeIn-1x_R2.mzML
 
 | Step | Tool | Version | Status | Time | Wrote |
 |---|---|---|---|---|---|
-| 6 | FLASHDeconv | unknown | done | 4 s | out.tsv, spec1.tsv, spec2.tsv, spec3.tsv, spec4.tsv, out_deconv.mzML, quant.tsv, anno_annotated.mzML, toppic_ms1.msalign, toppic_ms2.msalign, toppic_ms1.feature, toppic_ms2.feature |
-| 8 | FLASHTnT (with 1 other file) | unknown | done | 15 s | tags.tsv, protein.tsv, prsms.tsv |
+| 6 | FLASHDeconv | unknown | done | 3 s | out.tsv, spec1.tsv, spec2.tsv, spec3.tsv, spec4.tsv, out_deconv.mzML, quant.tsv, anno_annotated.mzML, toppic_ms1.msalign, toppic_ms2.msalign, toppic_ms1.feature, toppic_ms2.feature |
+| 8 | FLASHTnT (with 1 other file) | unknown | done | 7 s | tags.tsv, protein.tsv, prsms.tsv |
 | 9 | FLASHAnnotator (with 1 other file) | unknown | done | 0 s | annotated.tsv, fragments.tsv |
-| 21 | FLASHQuantConsensus (with 5 other files) | 3.6.0-pre-HEAD-2026-11-09 | done | 1 s | consensus.tsv, identifications.tsv |
+| 21 | FLASHQuantConsensus (with 5 other files) | 3.6.0-pre-FDmerge-2026-11-09 | done | 0 s | consensus.tsv, identifications.tsv |
 
 ### Label-free_SpikeIn-0.1x_R1.mzML
 
 | Step | Tool | Version | Status | Time | Wrote |
 |---|---|---|---|---|---|
-| 11 | FLASHDeconv | unknown | done | 3 s | out.tsv, spec1.tsv, spec2.tsv, spec3.tsv, spec4.tsv, out_deconv.mzML, quant.tsv, anno_annotated.mzML, toppic_ms1.msalign, toppic_ms2.msalign, toppic_ms1.feature, toppic_ms2.feature |
-| 13 | FLASHTnT (with 1 other file) | unknown | done | 10 s | tags.tsv, protein.tsv, prsms.tsv |
+| 11 | FLASHDeconv | unknown | done | 2 s | out.tsv, spec1.tsv, spec2.tsv, spec3.tsv, spec4.tsv, out_deconv.mzML, quant.tsv, anno_annotated.mzML, toppic_ms1.msalign, toppic_ms2.msalign, toppic_ms1.feature, toppic_ms2.feature |
+| 13 | FLASHTnT (with 1 other file) | unknown | done | 6 s | tags.tsv, protein.tsv, prsms.tsv |
 | 14 | FLASHAnnotator (with 1 other file) | unknown | done | 0 s | annotated.tsv, fragments.tsv |
-| 21 | FLASHQuantConsensus (with 5 other files) | 3.6.0-pre-HEAD-2026-11-09 | done | 1 s | consensus.tsv, identifications.tsv |
+| 21 | FLASHQuantConsensus (with 5 other files) | 3.6.0-pre-FDmerge-2026-11-09 | done | 0 s | consensus.tsv, identifications.tsv |
 
 ### Label-free_SpikeIn-0.1x_R2.mzML
 
 | Step | Tool | Version | Status | Time | Wrote |
 |---|---|---|---|---|---|
-| 16 | FLASHDeconv | unknown | done | 3 s | out.tsv, spec1.tsv, spec2.tsv, spec3.tsv, spec4.tsv, out_deconv.mzML, quant.tsv, anno_annotated.mzML, toppic_ms1.msalign, toppic_ms2.msalign, toppic_ms1.feature, toppic_ms2.feature |
-| 18 | FLASHTnT (with 1 other file) | unknown | done | 15 s | tags.tsv, protein.tsv, prsms.tsv |
+| 16 | FLASHDeconv | unknown | done | 2 s | out.tsv, spec1.tsv, spec2.tsv, spec3.tsv, spec4.tsv, out_deconv.mzML, quant.tsv, anno_annotated.mzML, toppic_ms1.msalign, toppic_ms2.msalign, toppic_ms1.feature, toppic_ms2.feature |
+| 18 | FLASHTnT (with 1 other file) | unknown | done | 8 s | tags.tsv, protein.tsv, prsms.tsv |
 | 19 | FLASHAnnotator (with 1 other file) | unknown | done | 0 s | annotated.tsv, fragments.tsv |
-| 21 | FLASHQuantConsensus (with 5 other files) | 3.6.0-pre-HEAD-2026-11-09 | done | 1 s | consensus.tsv, identifications.tsv |
+| 21 | FLASHQuantConsensus (with 5 other files) | 3.6.0-pre-FDmerge-2026-11-09 | done | 0 s | consensus.tsv, identifications.tsv |
 
 ### out.tsv
 
 | Step | Tool | Version | Status | Time | Wrote |
 |---|---|---|---|---|---|
-| 21 | FLASHQuantConsensus (with 5 other files) | 3.6.0-pre-HEAD-2026-11-09 | done | 1 s | consensus.tsv, identifications.tsv |
+| 21 | FLASHQuantConsensus (with 5 other files) | 3.6.0-pre-FDmerge-2026-11-09 | done | 0 s | consensus.tsv, identifications.tsv |
 
 ### prsms.tsv
 
 | Step | Tool | Version | Status | Time | Wrote |
 |---|---|---|---|---|---|
-| 21 | FLASHQuantConsensus (with 5 other files) | 3.6.0-pre-HEAD-2026-11-09 | done | 1 s | consensus.tsv, identifications.tsv |
+| 21 | FLASHQuantConsensus (with 5 other files) | 3.6.0-pre-FDmerge-2026-11-09 | done | 0 s | consensus.tsv, identifications.tsv |
 
 ## Tool calls
 
@@ -103,7 +103,7 @@ Parameters that differ from the tool's defaults.
 
 ### Step 1: FLASHDeconv
 
-Version: unknown · Status: done · Time: 4 s
+Version: unknown · Status: done · Time: 2 s
 
 | Parameter | Value |
 |---|---|
@@ -122,7 +122,7 @@ Version: unknown · Status: done · Time: 0 s
 
 ### Step 3: FLASHTnT
 
-Version: unknown · Status: done · Time: 12 s
+Version: unknown · Status: done · Time: 6 s
 
 | Parameter | Value |
 |---|---|
@@ -139,13 +139,13 @@ Version: unknown · Status: done · Time: 0 s
 
 ### Step 5: Processing results
 
-Version: unknown · Status: done · Time: 2 s
+Version: unknown · Status: done · Time: 1 s
 
 Parameters were not recorded for this call.
 
 ### Step 6: FLASHDeconv
 
-Version: unknown · Status: done · Time: 4 s
+Version: unknown · Status: done · Time: 3 s
 
 | Parameter | Value |
 |---|---|
@@ -164,7 +164,7 @@ Version: unknown · Status: done · Time: 0 s
 
 ### Step 8: FLASHTnT
 
-Version: unknown · Status: done · Time: 15 s
+Version: unknown · Status: done · Time: 7 s
 
 | Parameter | Value |
 |---|---|
@@ -181,13 +181,13 @@ Version: unknown · Status: done · Time: 0 s
 
 ### Step 10: Processing results
 
-Version: unknown · Status: done · Time: 2 s
+Version: unknown · Status: done · Time: 1 s
 
 Parameters were not recorded for this call.
 
 ### Step 11: FLASHDeconv
 
-Version: unknown · Status: done · Time: 3 s
+Version: unknown · Status: done · Time: 2 s
 
 | Parameter | Value |
 |---|---|
@@ -206,7 +206,7 @@ Version: unknown · Status: done · Time: 0 s
 
 ### Step 13: FLASHTnT
 
-Version: unknown · Status: done · Time: 10 s
+Version: unknown · Status: done · Time: 6 s
 
 | Parameter | Value |
 |---|---|
@@ -223,13 +223,13 @@ Version: unknown · Status: done · Time: 0 s
 
 ### Step 15: Processing results
 
-Version: unknown · Status: done · Time: 2 s
+Version: unknown · Status: done · Time: 0 s
 
 Parameters were not recorded for this call.
 
 ### Step 16: FLASHDeconv
 
-Version: unknown · Status: done · Time: 3 s
+Version: unknown · Status: done · Time: 2 s
 
 | Parameter | Value |
 |---|---|
@@ -248,7 +248,7 @@ Version: unknown · Status: done · Time: 0 s
 
 ### Step 18: FLASHTnT
 
-Version: unknown · Status: done · Time: 15 s
+Version: unknown · Status: done · Time: 8 s
 
 | Parameter | Value |
 |---|---|
@@ -265,12 +265,12 @@ Version: unknown · Status: done · Time: 0 s
 
 ### Step 20: Processing results
 
-Version: unknown · Status: done · Time: 2 s
+Version: unknown · Status: done · Time: 0 s
 
 Parameters were not recorded for this call.
 
 ### Step 21: FLASHQuantConsensus
 
-Version: 3.6.0-pre-HEAD-2026-11-09 · Status: done · Time: 1 s
+Version: 3.6.0-pre-FDmerge-2026-11-09 · Status: done · Time: 0 s
 
 All parameters at their defaults.
