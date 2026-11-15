@@ -42,7 +42,14 @@ def show_series(data, name: str, cache_path, key: str, height=None, state_manage
     from openms_insight import SeriesPlot
 
     frame = pl.from_pandas(data) if isinstance(data, pd.DataFrame) else data
-    cache_id = f'{name}-{_fingerprint(frame, plot_kwargs)}'
+    marks = plot_kwargs.pop('highlight_data', None)
+    if isinstance(marks, pd.DataFrame):
+        marks = pl.from_pandas(marks)
+    settings = dict(plot_kwargs)
+    if marks is not None:
+        settings['highlight_data'] = _fingerprint(marks, {})
+        plot_kwargs['highlight_data'] = marks.lazy()
+    cache_id = f'{name}-{_fingerprint(frame, settings)}'
     plot = SeriesPlot(
         cache_id=cache_id, cache_path=str(Path(cache_path, 'insight', 'series')), data=frame.lazy(),
         **plot_kwargs,

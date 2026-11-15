@@ -261,9 +261,20 @@ def build_volcano(session, state_manager, key, height):
     )(key=key, state_manager=state_manager, height=height, help=teaching.help(), fc_threshold=fc, p_threshold=padj, max_labels=10)
 
 
+def _picked_set(state_manager):
+    """The entries picked together (box, lasso, the volcano's presets or the
+    table's check boxes), when there are several."""
+    picked = [p for p in (state_manager.get_selection(go_terms.COMPARISON_SET) or []) if p is not None]
+    return picked if len(picked) > 1 else []
+
+
 def build_profile(session, state_manager, key, height):
-    """The selected entity's normalized abundance in every run (sample), by condition."""
+    """The selected entity's normalized abundance in every run (sample), by
+    condition; with several entries picked together, each of them as a line."""
     if not _ready(session):
+        return
+    if _picked_set(state_manager):
+        _build_profiles(session, state_manager, key, height)
         return
     colors = condition_colors(set(session.conditions().values()))
     settings = session.settings
@@ -278,6 +289,27 @@ def build_profile(session, state_manager, key, height):
             x_column='Run', y_column='Abundance', series_column='Condition',
             series_colors=colors, mode='markers', y_range_mode='normal', hover_column='Hover',
             title=f'Abundance per {_sample(session).lower()}', x_label=_sample(session),
+            y_label=f"Abundance ({settings['postproc-transform']}, normalized)",
+        ),
+    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
+
+
+def _build_profiles(session, state_manager, key, height):
+    """The normalized abundance of every entry picked together, one line each."""
+    settings = session.settings
+    names = session.result('statistics').select('ConsensusIndex', 'Proteoform')
+    _component(
+        SeriesPlot, f'quant_profiles_{session.level}', session.file_manager, session.dataset_id,
+        _sources(session, 'normalized'),
+        lambda: dict(
+            data=session.result('normalized').join(names, on='ConsensusIndex', how='left').with_columns(
+                (pl.col('Proteoform') + ' in ' + pl.col('Run') + ': ' + pl.col('Status')).alias('Hover'),
+            ).sort('Proteoform', 'Run'),
+            filters={go_terms.COMPARISON_SET: 'Proteoform'},
+            x_column='Run', y_column='Abundance', series_column='Proteoform',
+            mode='lines+markers', y_range_mode='normal', hover_column='Hover',
+            title=f'Abundance per {_sample(session).lower()} of the picked {_noun(session, plural=True)}',
+            x_label=_sample(session),
             y_label=f"Abundance ({settings['postproc-transform']}, normalized)",
         ),
     )(key=key, state_manager=state_manager, height=height, help=teaching.help())
@@ -725,7 +757,7 @@ def _no_spectrum_note(frame, form, runs):
             'Pick an identification with Spectrum: yes in the PrSM table, or process that run here.')
 
 
-def _selected_prsm(session, state_manager):
+def _selected_prsm(session, state_manager, note=True):
     """(dataset id, state) of the run of the PrSM picked in the PrSM table,
     its state pointing at that PrSM; None (with a note) otherwise.
 
@@ -746,6 +778,13 @@ def _selected_prsm(session, state_manager):
     row = shown.filter(pl.col('prsm_row') == picked) if picked is not None else shown.head(0)
     if row.height == 0:
         row = shown.head(1)
+        lost = frame.filter(pl.col('prsm_row') == picked) if picked is not None else frame.head(0)
+        if form is not None:
+            lost = lost.filter(pl.col('RowIndex') == form)
+        if note and lost.height and row.height:
+            gone, first = lost.row(0, named=True), row.row(0, named=True)
+            st.caption(f"Scan {gone['Scan']} of {gone['Run']} has no spectrum in this workspace; "
+                       f"showing scan {first['Scan']} of {first['Run']}.")
     if row.height == 0:
         st.info(_no_spectrum_note(frame, form, runs))
         return None
@@ -765,7 +804,7 @@ def _selected_prsm(session, state_manager):
 
 def _run_cell(comp_name, session, state_manager, key):
     from src.render import render
-    picked = _selected_prsm(session, state_manager)
+    picked = _selected_prsm(session, state_manager, note=comp_name == 'sequence_view')
     if picked is None:
         return
     run_ds, state = picked

@@ -78,7 +78,13 @@ def coefficients_of_variation(frame, colors):
         f"{condition} {_median(frame.filter(frame['condition'] == condition)['cv'].to_list()):.0f}%"
         for condition in sorted(set(frame['condition'].to_list()))
     ]
+    marks = {}
+    if 'ConsensusIndex' in frame.columns:
+        # The picked entity's CV in each condition, marked on its box
+        marks = dict(highlight={'consensus': 'ConsensusIndex'},
+                     highlight_data=frame.select('ConsensusIndex', 'condition', 'cv'))
     return dict(
+        **marks,
         data=thin(frame.select('condition', 'cv').sort('condition'), ['condition'], 'cv'),
         x_column='condition', y_column='cv', series_column='condition', series_colors=colors, mode='box',
         show_legend=False, title=f'Variation between replicates (CV), median {", ".join(medians)}',
@@ -168,11 +174,13 @@ def feature_intensity(values, samples, sample_noun='Run'):
     order = {s: i for i, s in enumerate(samples)}
     data = (
         values.filter(pl.col('Found').is_in(['detected', 'matched']))
-        .select('Run', 'log2_intensity', 'Found')
+        .select('RowIndex', 'Run', 'log2_intensity', 'Found')
         .sort(pl.col('Run').replace_strict(order, default=len(order)))
     )
     return dict(
-        data=thin(data, ['Run', 'Found'], 'log2_intensity'), x_column='Run', y_column='log2_intensity',
+        # The picked feature in every run, marked on the box it falls in
+        highlight={'quant_feature': 'RowIndex'}, highlight_data=data,
+        data=thin(data.drop('RowIndex'), ['Run', 'Found'], 'log2_intensity'), x_column='Run', y_column='log2_intensity',
         series_column='Found', series_colors=FOUND_COLORS, mode='box',
         title=f'Feature intensity per {sample_noun.lower()}', x_label=sample_noun, y_label='log2 intensity',
         y_range_mode='normal',
