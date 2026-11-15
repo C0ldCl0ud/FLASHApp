@@ -296,6 +296,7 @@ def _profile_arguments(session, several):
         empty_until_picked=False, title=title, x_label=sample,
         y_label=f"Abundance ({settings['postproc-transform']}, normalized)",
         subtitle_column=None if several else 'Entity',
+        groups=None if several else list(session.conditions().values()),
     )
     return dict(data=pl.from_pandas(table).lazy(), **arguments)
 
