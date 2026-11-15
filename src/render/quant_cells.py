@@ -12,6 +12,8 @@ entity in the level shown): clicking a proteoform in the table or the volcano
 plot shows it in the profile and the per-run table.
 """
 
+from pathlib import Path
+
 import polars as pl
 import streamlit as st
 
@@ -19,17 +21,16 @@ from openms_insight import ClusteredHeatmap, Heatmap, PCAPlot, SeriesPlot, Table
 
 from src.parse import differential as diff
 from src.quant import qc, sources
-from src.quant.session import LEVEL_NAMES, RESULTS, STATUS_LABELS
+from src.quant.session import LEVEL_NAMES, STATUS_LABELS
 from src.render import comparison_plots, go_terms, insight_data, teaching
-from src.render.postprocessing_plots import (
-    IMPUTED_COLORS, IMPUTED_SERIES, MISSING_COLORS, MISSING_SERIES, STAGE_COLORS, STAGE_SERIES,
-    imputed_value_preview, missingness_vs_intensity, pvalue_histogram, sample_distributions,
-)
 from src.render.render import RECLICK, MissingResult, _component, _fixed
 from src.render.series import show_series
+from src.viz import comparison_steps as steps
+from src.viz.heatmap import clustered_settings
+from src.viz.pca import most_variable, pca_settings, sample_metadata
+from src.viz.plumbing import group_colors as condition_colors
+from src.viz.volcano import volcano_settings
 
-
-CONDITION_COLORS = ['#3366CC', '#DC3912', '#FF9900', '#109618', '#990099', '#0099C6']
 
 # OpenDDA's cut-offs for calling a change
 FC_CUTOFF = 1.0
@@ -52,9 +53,6 @@ def _plot(session, name, spec, key, state_manager, height):
     show_series(spec.pop('data'), name, session.file_manager.cache_path, key, height=height,
                 state_manager=state_manager, **spec)
 
-
-def condition_colors(names):
-    return {name: CONDITION_COLORS[i % len(CONDITION_COLORS)] for i, name in enumerate(sorted(names))}
 
 STATUS_COLORS = {
     'detected': '#2E7D32', 'transferred, identified': '#1565C0',
@@ -246,17 +244,13 @@ def build_volcano(session, state_manager, key, height):
         _sources(session, 'statistics'),
         lambda: dict(
             data=session.result('statistics').drop_nulls(['log2FC', 'p-adj']),
-            log2fc_column='log2FC', pvalue_column='p-adj', label_column='Proteoform',
-            interactivity={'consensus': 'ConsensusIndex'},
-            # A box or lasso, or All changed / Higher / Lower, picks entries
-            # for the GO enrichment cell
-            multi_select={go_terms.COMPARISON_SET: 'Proteoform'},
-            selection_presets=True,
-            preset_labels={'up': f'Higher in {compared}', 'down': f'Lower in {compared}'},
-            title=f'{compared} vs. {reference}',
-            up_color='#E74C3C', down_color='#3498DB', ns_color='#95A5A6',
-            show_threshold_lines=True, threshold_line_style='dash',
-            x_label='log2 fold change', y_label='-log10(adjusted p-value)',
+            **volcano_settings(
+                pvalue_column='p-adj', label_column='Proteoform', reference=reference, compared=compared,
+                interactivity={'consensus': 'ConsensusIndex'},
+                # A box or lasso, or All changed / Higher / Lower, picks entries
+                # for the GO enrichment cell
+                multi_select={go_terms.COMPARISON_SET: 'Proteoform'},
+            ),
         ),
     )(key=key, state_manager=state_manager, height=height, help=teaching.help(), fc_threshold=fc, p_threshold=padj, max_labels=10)
 
@@ -395,10 +389,7 @@ def build_runs(session, state_manager, key, height):
 
 
 def _metadata(conditions):
-    return pl.DataFrame(
-        {'sample_id': list(conditions), 'group': list(conditions.values())},
-        schema={'sample_id': pl.String, 'group': pl.String},
-    )
+    return sample_metadata(conditions)
 
 
 def build_pca(session, state_manager, key, height):
@@ -409,19 +400,13 @@ def build_pca(session, state_manager, key, height):
     if len(runs) < 3:
         st.info(f'PCA needs at least three {_sample(session).lower()}s with a condition.')
         return
-    colors = condition_colors(set(conditions.values()))
-    wide = session.result('normalized_wide').select('Proteoform', *runs).collect()
-    variance = wide.select(pl.concat_list(runs).list.var().alias('v'))['v']
-    top = wide.with_columns(variance.alias('_v')).sort('_v', descending=True).head(500).drop('_v')
+    top = most_variable(session.result('normalized_wide').select('Proteoform', *runs).collect(), runs,
+                        id_column='Proteoform')
     try:
         pca = _component(
             PCAPlot, f'quant_pca_{session.level}', session.file_manager, session.dataset_id,
             _sources(session, 'normalized_wide'),
-            lambda: dict(
-                data=top.lazy(), metadata=_metadata(conditions), sample_id_field='sample_id',
-                group_field='group', n_components=min(5, len(runs)), title='Sample similarity (PCA)',
-                group_colors=colors,
-            ),
+            lambda: dict(data=top.lazy(), **pca_settings(conditions)),
         )
     except ValueError as e:
         st.info(f'PCA could not be computed: {e}')
@@ -433,16 +418,16 @@ def build_heatmap(session, state_manager, key, height):
     if not _ready(session):
         return
     conditions = session.conditions()
-    colors = condition_colors(set(conditions.values()))
     _component(
         ClusteredHeatmap, f'quant_heatmap_{session.level}', session.file_manager, session.dataset_id,
         _sources(session, 'zscores'),
         lambda: dict(
-            data=session.result('zscores'), id_col='Proteoform', metadata=_metadata(conditions),
-            title=f'Most significant {_noun(session, True)} (z-scores, clustered)',
-            x_label=f'{_sample(session)}s', y_label=LEVEL_NAMES[session.level],
-            intensity_label='Z-score', group_colors=colors,
-            multi_select={go_terms.COMPARISON_SET: 'Proteoform'},
+            data=session.result('zscores'),
+            **clustered_settings(
+                conditions, 'Proteoform', title=f'Most significant {_noun(session, True)} (z-scores, clustered)',
+                x_label=f'{_sample(session)}s', y_label=LEVEL_NAMES[session.level],
+                multi_select={go_terms.COMPARISON_SET: 'Proteoform'},
+            ),
         ),
     )(key=key, state_manager=state_manager, height=height, help=teaching.help())
 
@@ -614,19 +599,20 @@ def build_match_quality(session, state_manager, key, height=None):
 # Saved layouts written before they were split name them together as
 # 'quant_diagnostics' (quant_view.split_diagnostics).
 
+def _step(session, key, state_manager, height):
+    """Where a comparison-step plot of the library is cached and drawn."""
+    return dict(cache_path=Path(session.file_manager.cache_path, 'insight'), key=key,
+                state_manager=state_manager, height=height, help=teaching.help())
+
+
 def build_missing_values(session, state_manager, key, height=None):
     """Where missing values occur: mean intensity of complete entries and of
     entries with gaps."""
     if not _ready(session):
         return
-    runs = list(session.conditions())
-    data, gaps = missingness_vs_intensity(_frame(session, 'filtered'), runs)
-    show_series(
-        data, 'quant-missing-values', session.file_manager.cache_path, key, height=height,
-        state_manager=state_manager, x_column='x', y_column='y', series_column='series',
-        series_names=MISSING_SERIES, series_colors=MISSING_COLORS,
-        title=f'Where missing values occur ({gaps} of {len(_frame(session, "filtered"))} have gaps)',
-        x_label='Mean log2 intensity', y_label='Density',
+    steps.show_missing_values(
+        _frame(session, 'filtered'), list(session.conditions()), 'quant-missing-values',
+        x_label='Mean log2 intensity', **_step(session, key, state_manager, height),
     )
 
 
@@ -634,37 +620,20 @@ def build_imputed_values(session, state_manager, key, height=None):
     """The values imputed for the gaps against the measured ones."""
     if not _ready(session):
         return
-    runs = list(session.conditions())
-    show_series(
-        imputed_value_preview(_frame(session, 'filtered'), _frame(session, 'imputed'), runs),
-        'quant-imputed-values', session.file_manager.cache_path, key, height=height,
-        state_manager=state_manager, x_column='x', y_column='y', series_column='series',
-        series_names=IMPUTED_SERIES, series_colors=IMPUTED_COLORS,
-        title='Observed values and the values imputation fills in', x_label='log2 intensity', y_label='Values',
+    steps.show_imputed_values(
+        _frame(session, 'filtered'), _frame(session, 'imputed'), list(session.conditions()),
+        'quant-imputed-values', x_label='log2 intensity', **_step(session, key, state_manager, height),
     )
-
-
-def _normalization_height(samples):
-    """A box per sample, laid out horizontally."""
-    return 44 * samples + 140
 
 
 def build_normalization(session, state_manager, key, height=None):
     """Intensity distribution of each sample before and after normalization."""
     if not _ready(session):
         return
-    samples = list(session.conditions())
-    data = sample_distributions(
-        _frame(session, 'imputed'), _frame(session, 'normalized_wide'), samples,
-        after_is_log=session.settings['postproc-transform'] != 'None',
-    )
-    show_series(
-        data, 'quant-run-distributions', session.file_manager.cache_path, key,
-        height=max(height or 0, _normalization_height(len(samples))), state_manager=state_manager,
-        x_column='Sample', y_column='Intensity', series_column='Stage', series_names=STAGE_SERIES,
-        series_colors=STAGE_COLORS, mode='box', orientation='h',
-        title='Intensity distributions before and after normalization', x_label=_sample(session),
-        y_label='log2 intensity', y_range_mode='normal',
+    steps.show_normalization(
+        _frame(session, 'imputed'), _frame(session, 'normalized_wide'), list(session.conditions()),
+        session.settings['postproc-transform'] != 'None', 'quant-run-distributions',
+        sample_label=_sample(session), y_label='log2 intensity', **_step(session, key, state_manager, height),
     )
 
 
@@ -672,12 +641,9 @@ def build_pvalues(session, state_manager, key, height=None):
     """Distribution of the p-values of the group comparison."""
     if not _ready(session):
         return
-    data, expected = pvalue_histogram(_frame(session, 'statistics'))
-    show_series(
-        data, 'quant-p-values', session.file_manager.cache_path, key, height=height,
-        state_manager=state_manager, x_column='p-value', y_column='Proteoforms', mode='bars', show_legend=False,
-        title=f'p-value distribution ({expected:.0f} per bin if nothing changes)', x_label='p-value',
-        y_label=_noun(session, True).capitalize(),
+    steps.show_pvalues(
+        _frame(session, 'statistics'), 'quant-p-values', noun=_noun(session, True).capitalize(),
+        **_step(session, key, state_manager, height),
     )
 
 
@@ -1116,7 +1082,7 @@ def row_height(row, samples=0):
     heights = [BUILDERS[name][1] or DEFAULT_HEIGHT for name in row
                if name in BUILDERS and name not in FREE_HEIGHT]
     if 'quant_normalization' in row:
-        heights.append(_normalization_height(samples))
+        heights.append(steps.plot_height(range(samples)))
     return max(heights) if len(row) > 1 and heights else None
 
 

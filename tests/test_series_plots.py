@@ -1,7 +1,8 @@
 """The comparison plots return tables for an openms-insight SeriesPlot."""
 import polars as pl
 
-from src.render.series import _fingerprint, thin
+from src.render.series import thin
+from src.viz.plumbing import fingerprint
 
 
 def test_thin_keeps_at_most_points_per_group_and_the_extremes():
@@ -14,6 +15,6 @@ def test_thin_keeps_at_most_points_per_group_and_the_extremes():
 
 def test_fingerprint_changes_with_data_and_settings():
     frame = pl.DataFrame({'x': [1, 2], 'y': [3, 4]})
-    assert _fingerprint(frame, {'mode': 'bars'}) == _fingerprint(frame.clone(), {'mode': 'bars'})
-    assert _fingerprint(frame, {'mode': 'bars'}) != _fingerprint(frame, {'mode': 'lines'})
-    assert _fingerprint(frame, {}) != _fingerprint(frame.with_columns(y=pl.lit(5)), {})
+    assert fingerprint(frame, ('mode', 'bars')) == fingerprint(frame.clone(), ('mode', 'bars'))
+    assert fingerprint(frame, ('mode', 'bars')) != fingerprint(frame, ('mode', 'lines'))
+    assert fingerprint(frame) != fingerprint(frame.with_columns(y=pl.lit(5)))
