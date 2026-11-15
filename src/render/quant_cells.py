@@ -337,7 +337,8 @@ def _build_profiles(session, state_manager, key, height):
             ).sort('Proteoform', 'Run'),
             filters={go_terms.COMPARISON_SET: 'Proteoform'},
             x_column='Run', y_column='Abundance', series_column='Proteoform',
-            mode='lines+markers', y_range_mode='normal', hover_column='Hover',
+            # Runs are not a sequence: no lines between them
+            mode='markers', y_range_mode='normal', hover_column='Hover',
             title=f'Abundance per {_sample(session).lower()} of the picked {_noun(session, plural=True)}',
             x_label=_sample(session),
             y_label=f"Abundance ({settings['postproc-transform']}, normalized)",
