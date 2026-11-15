@@ -29,6 +29,8 @@ from src.viz import comparison_steps as steps
 from src.viz.heatmap import clustered_settings
 from src.viz.pca import most_variable, pca_settings, sample_metadata
 from src.viz.plumbing import group_colors as condition_colors
+from src.viz.comparison_table import comparison_columns, comparison_table
+from src.viz.profile import picked_set, profile_settings, profile_table
 from src.viz.volcano import volcano_settings
 
 
@@ -37,7 +39,6 @@ FC_CUTOFF = 1.0
 P_CUTOFF = 0.05
 
 _P = {'formatter': 'scientific', 'formatterParams': {'precision': 3}}
-_FC = {'formatter': 'signed', 'formatterParams': {'precision': 2}}
 
 
 def comparison_groups(conditions):
@@ -85,15 +86,6 @@ def _sources(session, *names):
     return [session.result_name(n) for n in names] + ['quant_design', 'quant_settings']
 
 
-def _change(compared, fc, padj):
-    significant = (pl.col('p-adj') <= padj) & (pl.col('log2FC').abs() >= fc)
-    return (
-        pl.when(significant & (pl.col('log2FC') > 0)).then(pl.lit(f'higher in {compared}'))
-        .when(significant & (pl.col('log2FC') < 0)).then(pl.lit(f'lower in {compared}'))
-        .otherwise(pl.lit('–'))
-    )
-
-
 def _sample(session):
     """'Sample' for labelled samples (TMT, iTRAQ), else 'Run'."""
     return session.sample_noun.capitalize()
@@ -131,12 +123,8 @@ def _table_columns(session, runs):
         hidden.append('proforma')
     if level == 'protein':
         columns.append({'title': 'Description', 'field': 'description', 'sorter': 'string'})
-    columns += [
-        {'title': 'Change', 'field': 'Change', 'sorter': 'string'},
-        {'title': 'log2 fold change', 'field': 'log2FC', 'sorter': 'number', **_FC},
-        {'title': 'Adjusted p-value', 'field': 'p-adj', 'sorter': 'number', **_P,
-         'headerTooltip': 'Empty: removed by the filter, so not tested.'},
-    ]
+    entity, before = columns[0], columns[1:]
+    columns = []
     if level != 'protein':
         columns.append({'title': 'Mass (Da)', 'field': 'mass', 'sorter': 'number', **_fixed(2)})
         hidden.append('mass')
@@ -168,7 +156,9 @@ def _table_columns(session, runs):
         columns.append({'title': run, 'field': run, 'sorter': 'string',
                         'headerTooltip': 'detected; transferred, identified (match between runs, identified in the run); transferred (match between runs); missing'})
         hidden.append(run)
-    return columns, hidden
+    # The library's comparison columns, with this level's name and extras
+    return comparison_columns(entity['field'], entity['title'], entity_tooltip=entity['headerTooltip'],
+                              after_entity=before, after=columns, p_value=False), hidden
 
 
 def build_summary(session, state_manager, key, height=None):
@@ -204,7 +194,7 @@ def _comparison_table(session):
             table = table.with_columns(
                 (pl.col('start').cast(pl.Utf8) + '\u2013' + pl.col('end').cast(pl.Utf8)).alias('residues'),
             )
-    return table.with_columns(_change(compared, fc, padj).alias('Change')).sort('p-adj', nulls_last=True).lazy()
+    return comparison_table(table.lazy(), compared, fc, padj)
 
 
 def build_table(session, state_manager, key, height):
@@ -258,15 +248,7 @@ def build_volcano(session, state_manager, key, height):
 def _picked_set(state_manager):
     """The entries picked together (box, lasso, the volcano's presets or the
     table's check boxes), when there are several."""
-    picked = [p for p in (state_manager.get_selection(go_terms.COMPARISON_SET) or []) if p is not None]
-    return picked if len(picked) > 1 else []
-
-
-def _subtitle(column):
-    """subtitle_column for an openms-insight that offers it (older builds
-    show the title alone)."""
-    import inspect
-    return {'subtitle_column': column} if 'subtitle_column' in inspect.signature(SeriesPlot.__init__).parameters else {}
+    return picked_set(state_manager, go_terms.COMPARISON_SET)
 
 
 def _entity_names(session):
@@ -289,54 +271,46 @@ def _entity_names(session):
     return frame.select('ConsensusIndex', pl.concat_str(parts).alias('Entity'))
 
 
+def _profile_arguments(session, several):
+    """The library's abundance profile of the level: one entry (by
+    ConsensusIndex) with the condition means, or every entry picked together."""
+    settings = session.settings
+    sample = _sample(session)
+    normalized = session.result('normalized')
+    if several:
+        names = session.result('statistics').select('ConsensusIndex', 'Proteoform')
+        long = normalized.join(names, on='ConsensusIndex', how='left').with_columns(
+            (pl.col('Proteoform') + ' in ' + pl.col('Run') + ': ' + pl.col('Status')).alias('Hover'),
+        )
+        id_column, keep, title = 'Proteoform', (), f'Abundance per {sample.lower()} of the picked {_noun(session, plural=True)}'
+    else:
+        long = normalized.join(_entity_names(session), on='ConsensusIndex', how='left').with_columns(
+            (pl.col('Entity') + '<br>' + pl.col('Run') + ': ' + pl.col('Status')).alias('Hover'),
+        )
+        id_column, keep, title = 'ConsensusIndex', ('Entity',), f'Abundance per {sample.lower()}'
+    table = profile_table(long.collect(), id_column, sample_column='Run', group_column='Condition',
+                          value_column='Abundance', hover_column='Hover', keep=keep, means=not several,
+                          samples=list(session.conditions()))
+    arguments = profile_settings(
+        table, id_column, go_terms.COMPARISON_SET if several else 'consensus', several=several,
+        empty_until_picked=False, title=title, x_label=sample,
+        y_label=f"Abundance ({settings['postproc-transform']}, normalized)",
+        subtitle_column=None if several else 'Entity',
+    )
+    return dict(data=pl.from_pandas(table).lazy(), **arguments)
+
+
 def build_profile(session, state_manager, key, height):
     """The selected entity's normalized abundance in every run (sample), by
-    condition; with several entries picked together, each of them as a line."""
+    condition with a line at each condition's mean; with several entries
+    picked together, each of them as a series."""
     if not _ready(session):
         return
-    if _picked_set(state_manager):
-        _build_profiles(session, state_manager, key, height)
-        return
-    colors = condition_colors(set(session.conditions().values()))
-    settings = session.settings
+    several = bool(_picked_set(state_manager))
     _component(
-        SeriesPlot, f'quant_profile_{session.level}', session.file_manager, session.dataset_id,
-        _sources(session, 'normalized'),
-        lambda: dict(
-            data=session.result('normalized').join(
-                _entity_names(session), on='ConsensusIndex', how='left',
-            ).with_columns(
-                (pl.col('Entity') + '<br>' + pl.col('Run') + ': ' + pl.col('Status')).alias('Hover'),
-            ),
-            filters={'consensus': 'ConsensusIndex'},
-            x_column='Run', y_column='Abundance', series_column='Condition',
-            series_colors=colors, mode='markers', y_range_mode='normal', hover_column='Hover',
-            **_subtitle('Entity'),
-            title=f'Abundance per {_sample(session).lower()}', x_label=_sample(session),
-            y_label=f"Abundance ({settings['postproc-transform']}, normalized)",
-        ),
-    )(key=key, state_manager=state_manager, height=height, help=teaching.help())
-
-
-def _build_profiles(session, state_manager, key, height):
-    """The normalized abundance of every entry picked together, one line each."""
-    settings = session.settings
-    names = session.result('statistics').select('ConsensusIndex', 'Proteoform')
-    _component(
-        SeriesPlot, f'quant_profiles_{session.level}', session.file_manager, session.dataset_id,
-        _sources(session, 'normalized'),
-        lambda: dict(
-            data=session.result('normalized').join(names, on='ConsensusIndex', how='left').with_columns(
-                (pl.col('Proteoform') + ' in ' + pl.col('Run') + ': ' + pl.col('Status')).alias('Hover'),
-            ).sort('Proteoform', 'Run'),
-            filters={go_terms.COMPARISON_SET: 'Proteoform'},
-            x_column='Run', y_column='Abundance', series_column='Proteoform',
-            # Runs are not a sequence: no lines between them
-            mode='markers', y_range_mode='normal', hover_column='Hover',
-            title=f'Abundance per {_sample(session).lower()} of the picked {_noun(session, plural=True)}',
-            x_label=_sample(session),
-            y_label=f"Abundance ({settings['postproc-transform']}, normalized)",
-        ),
+        SeriesPlot, f'quant_{"profiles" if several else "profile"}_{session.level}', session.file_manager,
+        session.dataset_id, _sources(session, 'normalized'),
+        lambda: _profile_arguments(session, several),
     )(key=key, state_manager=state_manager, height=height, help=teaching.help())
 
 

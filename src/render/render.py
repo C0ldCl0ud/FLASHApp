@@ -58,6 +58,8 @@ def _code_version():
         __file__, insight_data.__file__, validation_data.__file__, qc_data.__file__,
         hierarchy_data.__file__, prsm_data.__file__, go_terms.__file__, mass_shifts.__file__,
         str(Path(__file__).with_name('quant_cells.py')),
+        # The library panels the cells are configured with
+        *sorted(str(f) for f in Path(__file__).parents[1].joinpath('viz').glob('*.py')),
     ):
         try:
             digest.update(Path(module).read_bytes())
