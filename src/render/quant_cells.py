@@ -268,6 +268,33 @@ def _picked_set(state_manager):
     return picked if len(picked) > 1 else []
 
 
+def _subtitle(column):
+    """subtitle_column for an openms-insight that offers it (older builds
+    show the title alone)."""
+    import inspect
+    return {'subtitle_column': column} if 'subtitle_column' in inspect.signature(SeriesPlot.__init__).parameters else {}
+
+
+def _entity_names(session):
+    """ConsensusIndex -> Entity: the proteoform's name, with the feature's
+    mass and retention time when they are known (a feature level names its
+    entries by these alone)."""
+    statistics = session.result('statistics').select('ConsensusIndex', 'id', 'Proteoform')
+    annotations = session.annotations()
+    extra = [c for c in ('mass', 'rt') if c in annotations.collect_schema().names()]
+    frame = statistics.join(annotations.select('id', *extra), on='id', how='left')
+    parts = [pl.col('Proteoform').cast(pl.Utf8).fill_null('')]
+    if 'mass' in extra:
+        parts.append(pl.when(pl.col('mass').is_not_null())
+                     .then(pl.lit(' · ') + pl.col('mass').round(2).cast(pl.Utf8) + pl.lit(' Da'))
+                     .otherwise(pl.lit('')))
+    if 'rt' in extra:
+        parts.append(pl.when(pl.col('rt').is_not_null())
+                     .then(pl.lit(' @ ') + (pl.col('rt') / 60).round(1).cast(pl.Utf8) + pl.lit(' min'))
+                     .otherwise(pl.lit('')))
+    return frame.select('ConsensusIndex', pl.concat_str(parts).alias('Entity'))
+
+
 def build_profile(session, state_manager, key, height):
     """The selected entity's normalized abundance in every run (sample), by
     condition; with several entries picked together, each of them as a line."""
@@ -282,12 +309,15 @@ def build_profile(session, state_manager, key, height):
         SeriesPlot, f'quant_profile_{session.level}', session.file_manager, session.dataset_id,
         _sources(session, 'normalized'),
         lambda: dict(
-            data=session.result('normalized').with_columns(
-                (pl.col('Run') + ': ' + pl.col('Status')).alias('Hover'),
+            data=session.result('normalized').join(
+                _entity_names(session), on='ConsensusIndex', how='left',
+            ).with_columns(
+                (pl.col('Entity') + '<br>' + pl.col('Run') + ': ' + pl.col('Status')).alias('Hover'),
             ),
             filters={'consensus': 'ConsensusIndex'},
             x_column='Run', y_column='Abundance', series_column='Condition',
             series_colors=colors, mode='markers', y_range_mode='normal', hover_column='Hover',
+            **_subtitle('Entity'),
             title=f'Abundance per {_sample(session).lower()}', x_label=_sample(session),
             y_label=f"Abundance ({settings['postproc-transform']}, normalized)",
         ),

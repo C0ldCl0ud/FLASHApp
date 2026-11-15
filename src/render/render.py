@@ -405,6 +405,8 @@ def _qvalue_filters(*fields):
 # Rows of 33 px below the title bar and header; one table never exceeds TABLE_HEIGHT
 _HIERARCHY_CHROME = 100
 _HIERARCHY_ROW = 33
+# The protein, proteoform and PrSM tables are browsed, not glanced at: up to 15 rows
+HIERARCHY_HEIGHT = _HIERARCHY_CHROME + 15 * _HIERARCHY_ROW
 
 
 _IDENTIFICATION_ON_SELECT = {'tag': None, 'aa': None, 'mass': None}
@@ -1125,7 +1127,7 @@ def _hierarchy_table(comp_name, file_manager, dataset_id):
     # All three are as tall as the one with the most rows, so that tables
     # sitting side by side in a layout row line up
     rows = max(hierarchy_data.most_rows(hits).values())
-    height = min(TABLE_HEIGHT, _HIERARCHY_CHROME + _HIERARCHY_ROW * max(rows, 1))
+    height = min(HIERARCHY_HEIGHT, _HIERARCHY_CHROME + _HIERARCHY_ROW * max(rows, 1))
     table = _component(
         Table, comp_name, file_manager, dataset_id, ['protein_dfs', 'scan_table'], build,
     )
