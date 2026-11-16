@@ -1,8 +1,7 @@
-"""Streamlit adapter for validation-only MS1 inclusion-list planning.
+"""FLASHApp adapter for FAIMS-aware MS1 discovery and inclusion-list generation.
 
-Scientific processing stays in the thesis pipeline. This first milestone only
-collects settings, validates the selected MS1 runs and experimental design, and
-writes versioned setup artifacts into FLASHApp's per-run results directory.
+The computational steps invoke the installed thesis processing CLIs. A user
+can select validation-only mode to review their experiment before analysis.
 """
 from __future__ import annotations
 
@@ -14,6 +13,7 @@ import streamlit as st
 from src.ms1_inclusion_validation import (
     DEFAULT_SETTINGS, validate_setup, write_validation_artifacts,
 )
+from src.ms1_inclusion_pipeline import execute_pipeline, EXECUTABLE_SETTINGS
 from src.workflow.ExperimentalDesign import load_design
 from src.workflow.WorkflowManager import WorkflowManager
 
@@ -91,6 +91,18 @@ class MS1InclusionWorkflow(WorkflowManager):
         self.ui.experimental_design("ms1-files", name="Samples and biological replicates",
                                     suggest=True)
 
+        st.markdown("#### Execution")
+        self.ui.input_widget(
+            "execution-mode", "validation", "Processing mode",
+            widget_type="selectbox", options=["validation", "full"],
+            help="Validation saves the design and settings only. Full runs "
+                 "FAIMS-specific deconvolution, alignment, differential "
+                 "abundance, and targeted inclusion-list generation.",
+        )
+        st.caption("Choose **full** to start the scientific pipeline. "
+                   "The required thesis package and modified FLASHQuant must "
+                   "be installed in FLASHApp's Python environment.")
+
         tab_inputs, tab_deconv, tab_stats, tab_targets = st.tabs([
             "FAIMS and preprocessing", "Deconvolution and alignment",
             "Comparison", "Inclusion targets",
@@ -100,8 +112,8 @@ class MS1InclusionWorkflow(WorkflowManager):
             self.ui.input_widget(
                 "faims-mode", DEFAULT_SETTINGS["faims-mode"], "FAIMS handling",
                 widget_type="selectbox", options=["auto", "require"],
-                help="Auto accepts acquisitions without FAIMS; require rejects them. "
-                     "Scientific FAIMS splitting is integrated in the next milestone.",
+                help="Auto retains observed CVs and no_cv; require rejects "
+                     "unannotated MS1 scans. Deconvolution always splits by CV.",
             )
             self.ui.input_widget(
                 "rt-filter-enabled", False, "Restrict retention-time range",
@@ -121,7 +133,9 @@ class MS1InclusionWorkflow(WorkflowManager):
                 )
 
         with tab_deconv:
-            st.caption("Zero disables the optional precursor mass/charge minimum.")
+            st.caption("Minimum mass/charge controls are reserved for a verified "
+                       "FLASHDeconv CLI extension. Set both to zero for full runs; "
+                       "nonzero values are rejected rather than ignored.")
             a, b = st.columns(2)
             with a:
                 self.ui.input_widget(
@@ -142,6 +156,18 @@ class MS1InclusionWorkflow(WorkflowManager):
                 widget_type="selectbox", options=["partial"],
                 help="Partial-consensus groups are required for condition-specific targets.",
             )
+            with st.expander("Native executable paths (optional overrides)"):
+                st.caption("The correct OpenMS build must be accessible to the "
+                           "FLASHApp Python process. This is particularly "
+                           "important for the thesis's modified FLASHDeconv "
+                           "and ConsensusFeatureGroupDetector.")
+                for part, (key, default) in EXECUTABLE_SETTINGS.items():
+                    self.ui.input_widget(
+                        key, default,
+                        part.replace("_", " ").capitalize(),
+                        widget_type="text",
+                        help="Executable on PATH or an absolute path.",
+                    )
 
         with tab_stats:
             st.caption("Type condition labels exactly as shown in the design table.")
@@ -207,7 +233,7 @@ class MS1InclusionWorkflow(WorkflowManager):
                 )
 
     def execution(self) -> bool:
-        """Validate and snapshot inputs. Returning True means *validation* passed."""
+        """Run validation, then optionally execute the installed scientific pipeline."""
         try:
             selected, design, params = self._saved_inputs(for_execution=True)
             errors = validate_setup(selected, design, params)
@@ -218,19 +244,39 @@ class MS1InclusionWorkflow(WorkflowManager):
             report = write_validation_artifacts(
                 Path(self.results_dir), selected, design, params,
             )
-        except (OSError, ValueError, KeyError, TypeError) as error:
-            self.logger.log(f"ERROR: MS1 configuration validation failed: {error}")
-            return False
+            self.logger.log(
+                f"MS1 configuration validated for {len(selected)} acquisitions and "
+                f"{report['contrast']['condition_a']} vs "
+                f"{report['contrast']['condition_b']}."
+            )
+            if params.get("execution-mode", "validation") == "validation":
+                self.logger.log("Validation only: scientific pipeline was not executed.")
+                return True
 
-        self.logger.log(
-            f"MS1 configuration validated for {len(selected)} acquisitions and "
-            f"{report['contrast']['condition_a']} vs {report['contrast']['condition_b']}."
-        )
-        self.logger.log(
-            "VALIDATION ONLY: no deconvolution, alignment, abundance tests, "
-            "or inclusion-list generation was executed."
-        )
-        return True
+            def convert_bruker(source):
+                converted = self.executor.convert_to_mzml(
+                    [str(source)],
+                    out_dir=str(Path(self.workflow_dir, "converted-mzML")),
+                )
+                return converted[0] if converted else None
+
+            result = execute_pipeline(
+                selected, design, params, Path(self.results_dir),
+                Path(self.workflow_dir, "cache", "thesis-deconv"),
+                self.logger, self.executor.run_command,
+                convert_bruker=convert_bruker,
+            )
+            self.logger.log(
+                "Scientific pipeline completed; "
+                f"{result['inclusion_summary'].get('total_targets', 0)} "
+                "FAIMS inclusion targets exported."
+            )
+            return True
+        except Exception as error:
+            self.logger.log(f"ERROR: MS1 pipeline failed: {error}")
+            import traceback
+            self.logger.log(traceback.format_exc())
+            return False
 
     @st.fragment
     def results(self) -> None:
@@ -244,12 +290,42 @@ class MS1InclusionWorkflow(WorkflowManager):
             st.error(f"Could not load the saved validation report: {error}")
             return
 
-        st.success("Experimental design and parameters validated.")
-        st.warning(
-            "Scaffold milestone: scientific processing has not run and no "
-            "inclusion targets have been generated.",
-            icon="⚠️",
-        )
+        pipeline_file = Path(self.results_dir, "pipeline_report.json")
+        pipeline = None
+        if pipeline_file.is_file():
+            try:
+                pipeline = json.loads(pipeline_file.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as error:
+                st.error(f"Could not load pipeline summary: {error}")
+        if pipeline and pipeline.get("pipeline_completed"):
+            st.success("Scientific pipeline completed and inclusion targets exported.")
+            summary = pipeline.get("inclusion_summary", {})
+            st.metric("FAIMS targets", summary.get("total_targets", 0))
+            cv_groups = summary.get("cv_groups") or {}
+            if cv_groups:
+                st.markdown("#### Targets by compensation voltage")
+                st.dataframe([
+                    {"CV group": key, "CV (V)": val.get("cv_volts"),
+                     "Consensus features": val.get("input_consensus_features", 0),
+                     "Exported targets": val.get("exported_targets", 0)}
+                    for key, val in sorted(cv_groups.items())
+                ], hide_index=True, use_container_width=True)
+            target_file = Path(self.results_dir, "inclusion_list", "inclusion_list.tsv")
+            if target_file.is_file():
+                import pandas as pd
+                targets = pd.read_csv(target_file, sep="\t")
+                st.markdown("#### Inclusion targets")
+                st.dataframe(targets, hide_index=True, use_container_width=True)
+                st.download_button("Download combined inclusion list",
+                                   data=target_file.read_bytes(),
+                                   file_name="inclusion_list.tsv",
+                                   mime="text/tab-separated-values")
+            st.caption("Download native per-CV FLASHIda TSV files on this "
+                       "page using the run's ZIP export or the Files view.")
+        else:
+            st.success("Experimental design and parameters validated.")
+            st.info("Only configuration-validation artifacts are available for "
+                    "this run. No completed scientific pipeline report was found.")
         st.caption(
             f"{len(report['selected_input_files'])} acquisitions · "
             f"{report['contrast']['condition_a']} vs "
