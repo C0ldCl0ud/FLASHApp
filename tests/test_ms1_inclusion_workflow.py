@@ -65,6 +65,7 @@ def test_saved_validation_report_is_not_a_scientific_result(setup_data, tmp_path
     ({"contrast-a": ""}, "distinct"),
     ({"contrast-b": "not_in_design"}, "absent"),
     ({"faims-mode": "random"}, "FAIMS"),
+    ({"execution-mode": "broken"}, "Execution mode"),
     ({"coverage-mode": "complete"}, "partial-consensus"),
     ({"rt-filter-enabled": True, "rt-min-minutes": 4.0,
       "rt-max-minutes": 2.0}, "Maximum RT"),
@@ -124,7 +125,10 @@ def test_workflow_registered_with_four_pages_and_preset():
     assert workflow["class"] == "src/MS1InclusionWorkflow.py:MS1InclusionWorkflow"
     assert workflow["inputs"] == ["ms1-files"]
     assert workflow["multi_run"] is True
-    assert workflow["steps"] == []
+    assert [step["external"] for step in workflow["steps"]] == [
+        "tdp_flashdeconv.cli", "tdp_feature_alignment.cli",
+        "tdp_differential_abundance.cli", "tdp_inclusion_list.cli",
+    ]
     assert workflow["presets"] is True
     pages = [
         "MS1InclusionUpload.py", "MS1InclusionConfigure.py",
