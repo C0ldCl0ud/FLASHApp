@@ -55,6 +55,13 @@ def command_for_deconv(source: Path, deconv_root: Path, cache: Path, params: dic
     if s["rt-filter-enabled"]:
         args += ["--rt-min", str(s["rt-min-minutes"]),
                  "--rt-max", str(s["rt-max-minutes"])]
+    # Zero preserves the FLASHDeconv native defaults. Positive values act
+    # during spectral deconvolution (SD:min_mass / SD:min_charge), not as
+    # postprocessing filters on the exported feature tables.
+    if s["min-mass-da"] > 0:
+        args += ["--min-mass", str(s["min-mass-da"])]
+    if s["min-charge"] > 0:
+        args += ["--min-charge", str(s["min-charge"])]
     return args
 
 
@@ -112,13 +119,6 @@ def resolved_executables(params: dict, sources: list[str],
                          *, which=shutil.which) -> dict[str, str]:
     """Check installed CLI and native toolchain *before* costly RAW processing."""
     s = effective_settings(params)
-    if s["min-mass-da"] or s["min-charge"]:
-        raise RuntimeError(
-            "The installed thesis 'deconv' CLI does not yet expose the selected "
-            "minimum precursor mass or charge. Set both to 0 for this run, or "
-            "extend tdp_flashdeconv with verified native FLASHDeconv parameters. "
-            "The web workflow will not silently ignore these settings."
-        )
     # Do not confuse an acquisition dimension with a missing biological signal.
     if s["coverage-mode"] != "partial":
         raise RuntimeError("Partial FLASHQuant consensus is required for the inclusion-list workflow.")
@@ -131,6 +131,20 @@ def resolved_executables(params: dict, sources: list[str],
                 f"Missing thesis Python module {module!r}. Install the thesis "
                 "repository in FLASHApp's Python environment (pip install --no-deps -e <thesis-repo>)."
             ) from exc
+
+    # Explicit preflight: don't run expensive RAW conversion using an older
+    # installed thesis package that cannot honor requested native thresholds.
+    if s["min-mass-da"] or s["min-charge"]:
+        from tdp_flashdeconv.workflow import deconvolve
+        supported = inspect.signature(deconvolve).parameters
+        missing = {"min_mass", "min_charge"} - set(supported)
+        if missing:
+            raise RuntimeError(
+                "Installed tdp_flashdeconv does not support native minimum "
+                "mass/charge yet. Update the editable thesis checkout to main "
+                "(PR #8) or merge main into the inclusion-priorities branch "
+                "and reinstall it in the FLASHApp environment."
+            )
 
     from tdp_inclusion_list.selection import generate
     if "reason_priorities" not in inspect.signature(generate).parameters:
