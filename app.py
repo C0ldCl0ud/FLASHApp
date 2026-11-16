@@ -31,6 +31,18 @@ if __name__ == '__main__':
             st.Page(Path("content", "TopDown", "TopDownViewer.py"), title="Explore results", icon="👀"),
             st.Page(Path("content", "TopDown", "TopDownDownload.py"), title=export, icon=export_icon),
         ],
+        # MS1 discovery and FAIMS-aware inclusion-list planning.
+        # Validation-only scaffold; scientific execution is integrated later.
+        "🧪 MS1 inclusion planning" : [
+            st.Page(Path("content", "MS1Inclusion", "MS1InclusionUpload.py"),
+                    title="Input", icon="📁"),
+            st.Page(Path("content", "MS1Inclusion", "MS1InclusionConfigure.py"),
+                    title="Configure", icon="⚙️"),
+            st.Page(Path("content", "MS1Inclusion", "MS1InclusionRun.py"),
+                    title="Run", icon="🚀"),
+            st.Page(Path("content", "MS1Inclusion", "MS1InclusionResults.py"),
+                    title="Results", icon="📊"),
+        ],
         # Tools that work without a run
         "🧰 Other tools" : [
             st.Page(Path("content", "Tools", "FragmentMatcher.py"), title="Match fragments", icon="🧩"),
