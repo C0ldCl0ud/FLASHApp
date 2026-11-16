@@ -34,7 +34,7 @@ Example, adapting the thesis path if yours differs:
 
 \`\`\`bash
 conda activate flashapp-ms1
-cd /mnt/c/Users/langm/PycharmProjects/TDP_master_thesis
+cd /path/to/TDP_master_thesis
 
 git fetch origin
 # The inclusion-priorities changes are not yet on thesis main:
@@ -70,10 +70,10 @@ In **Configure → Deconvolution and alignment → Native executable paths**, ea
 tool can be set to a full path, so a locally built OpenMS executable can be
 used instead of the first instance on \`PATH\`.
 
-The custom FLASHDeconv executable previously used on WSL was located at
-\`/home/langm/openms-development/FDmerge-build-gcc15/bin/FLASHDeconv\`.
-Use that only if it still exists and is the build intended for your analysis.
-The path to the modified FLASHQuant detector must be checked locally.
+For a locally compiled FLASHDeconv, set a path such as
+`/path/to/openms-build/bin/FLASHDeconv`, after verifying that the binary
+is the intended build. The modified FLASHQuant detector's path must likewise
+be checked locally.
 
 \`tdp_flashdeconv\` performs RAW conversion in its *own* cached pipeline and
 splits by FAIMS CV **before** centroiding. FLASHApp's generic RAW conversion is
