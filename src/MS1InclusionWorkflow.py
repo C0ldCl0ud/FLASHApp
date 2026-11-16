@@ -28,7 +28,7 @@ class MS1InclusionWorkflow(WorkflowManager):
     multi_run = True
     run_page = RUN_PAGE
     configure_page = CONFIGURE_PAGE
-    run_label = "MS1 inclusion-list setup"
+    run_label = "MS1 inclusion planning"
 
     def __init__(self) -> None:
         super().__init__("MS1 inclusion planning", st.session_state["workspace"])
