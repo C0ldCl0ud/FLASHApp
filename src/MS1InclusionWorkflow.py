@@ -133,9 +133,9 @@ class MS1InclusionWorkflow(WorkflowManager):
                 )
 
         with tab_deconv:
-            st.caption("Minimum mass/charge controls are reserved for a verified "
-                       "FLASHDeconv CLI extension. Set both to zero for full runs; "
-                       "nonzero values are rejected rather than ignored.")
+            st.caption("Optional native FLASHDeconv spectral-deconvolution "
+                       "filters. Zero preserves the installed binary's defaults; "
+                       "positive values are passed as SD:min_mass and SD:min_charge.")
             a, b = st.columns(2)
             with a:
                 self.ui.input_widget(
