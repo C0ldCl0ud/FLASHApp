@@ -14,6 +14,7 @@ from pathlib import Path
 from src.workflow.ExperimentalDesign import to_openms_design
 
 DEFAULT_SETTINGS = {
+    "execution-mode": "validation",
     "faims-mode": "auto",
     "rt-filter-enabled": False,
     "rt-min-minutes": 0.0,
@@ -110,6 +111,8 @@ def validate_setup(files: list[str], design, params: dict) -> list[str]:
             if condition not in conditions:
                 errors.append(f"Contrast condition {condition!r} is absent from the design.")
 
+    if settings["execution-mode"] not in ("validation", "full"):
+        errors.append("Execution mode must be validation or full.")
     if settings["faims-mode"] not in ("auto", "require"):
         errors.append("FAIMS mode must be auto or require.")
     if settings["rt-alignment"] not in ("pose", "none"):
