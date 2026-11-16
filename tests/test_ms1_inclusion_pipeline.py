@@ -98,11 +98,28 @@ def test_rt_filter_only_when_enabled(experiment, tmp_path):
     assert _arg(cmd, "--rt-max") == "25.0"
 
 
-def test_reject_unsupported_native_mass_filter_before_expensive_analysis(experiment):
+def test_native_mass_charge_filters_reach_deconv_cli(experiment, tmp_path):
     files, _, params = experiment
     params["min-mass-da"] = 2000.0
-    with pytest.raises(RuntimeError, match="minimum precursor mass or charge"):
-        resolved_executables(params, files)
+    params["min-charge"] = 4
+    cmd = command_for_deconv(
+        Path(files[0]), tmp_path / "deconv", tmp_path / "cache",
+        params, TOOLS, "python3",
+    )
+    assert _arg(cmd, "--min-mass") == "2000.0"
+    assert _arg(cmd, "--min-charge") == "4"
+
+
+def test_zero_mass_charge_do_not_override_native_defaults(experiment, tmp_path):
+    files, _, params = experiment
+    params["min-mass-da"] = 0.0
+    params["min-charge"] = 0
+    cmd = command_for_deconv(
+        Path(files[0]), tmp_path / "deconv", tmp_path / "cache",
+        params, TOOLS, "python3",
+    )
+    assert "--min-mass" not in cmd
+    assert "--min-charge" not in cmd
 
 
 @pytest.fixture()
