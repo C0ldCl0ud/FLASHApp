@@ -1,0 +1,47 @@
+name: MS1 Inclusion Scaffold
+
+on:
+  push:
+    branches:
+      - feature/ms1-inclusion-workflow
+      - develop
+    paths:
+      - app.py
+      - app.yaml
+      - presets.json
+      - src/MS1InclusionWorkflow.py
+      - src/ms1_inclusion_validation.py
+      - content/MS1Inclusion/**
+      - tests/test_ms1_inclusion_workflow.py
+      - .github/workflows/ms1-inclusion-scaffold.yml
+  pull_request:
+    branches: [develop]
+    paths:
+      - app.py
+      - app.yaml
+      - presets.json
+      - src/MS1InclusionWorkflow.py
+      - src/ms1_inclusion_validation.py
+      - content/MS1Inclusion/**
+      - tests/test_ms1_inclusion_workflow.py
+
+permissions:
+  contents: read
+
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install lightweight validation dependencies
+        run: python -m pip install pytest pandas pyyaml jsonschema
+      - name: Check Python syntax
+        run: |
+          python -m compileall -q src/MS1InclusionWorkflow.py src/ms1_inclusion_validation.py content/MS1Inclusion tests/test_ms1_inclusion_workflow.py
+      - name: Run focused tests
+        run: python -m pytest -q tests/test_ms1_inclusion_workflow.py
+      - name: Validate app specification
+        run: python -m utils.app_spec
