@@ -11,8 +11,9 @@ st.title("MS1 inclusion planning · Run")
 st.caption("Validation checks that input files exist, the experimental design has "
            "distinct biological replicates, contrasts match the condition labels, "
            "and parameter values are valid.")
-st.warning("This stage only validates configuration and writes a reproducible setup "
-           "report; it does not execute deconvolution, alignment or inclusion-list selection.")
+st.info("Validation mode saves a reproducible setup report only. Full mode "
+        "executes each thesis CLI in order and records the output files and native "
+        "toolchain. Failed stages mark the run as failed.")
 wf.show_execution_section(
     results_page="content/MS1Inclusion/MS1InclusionResults.py",
     results_label="View validation report",
