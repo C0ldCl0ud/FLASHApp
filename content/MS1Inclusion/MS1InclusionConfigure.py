@@ -8,14 +8,14 @@ params = page_setup()
 wf = MS1InclusionWorkflow()
 
 st.title("MS1 inclusion planning · Configure")
-st.info("Scaffold milestone: Run validates and saves configuration only. "
-        "Scientific processing and inclusion-target generation are not connected yet.")
+st.info("Use **validation** to check the design and settings, or choose **full** "
+        "to execute the FAIMS-stratified scientific pipeline and generate inclusion targets.")
 wf.show_parameter_section()
 wf.show_run_button(
     RUN_PAGE,
-    label="Validate configuration",
+    label="Start selected processing mode",
     name_label="Configuration name",
-    summary="Validate the MS1 files, biological replicates, contrasts and settings. "
-            "No processing is executed.",
+    summary="Validation-only by default. Select full processing above to run "
+            "deconvolution, alignment, statistics and inclusion-list generation.",
 )
 save_params(params)
