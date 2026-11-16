@@ -65,6 +65,11 @@ def validate_setup(files: list[str], design, params: dict) -> list[str]:
     names = [path.name.casefold() for path in paths]
     if len(set(names)) != len(names):
         errors.append("Selected file names must be unique, even across folders.")
+    # The thesis CLI writes one manifest under deconv/<source.stem>.
+    # Different extensions with the same stem would overwrite one another.
+    stems = [path.stem.casefold() for path in paths]
+    if len(set(stems)) != len(stems):
+        errors.append("Selected acquisition basenames must be unique even across extensions.")
     for path in paths:
         suffix = path.suffix.casefold()
         if suffix not in {".mzml", ".raw", ".d"}:
