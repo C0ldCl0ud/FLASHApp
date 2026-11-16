@@ -40,11 +40,21 @@ class MS1InclusionWorkflow(WorkflowManager):
             selected = [selected]
         return [str(path) for path in selected]
 
-    def _saved_inputs(self):
-        """Read inputs only from the workspace, including in background workers."""
-        params = self.parameter_manager.get_parameters_from_json()
+    def _saved_inputs(self, *, for_execution: bool = False):
+        """Read persisted state; running work uses its immutable run snapshot.
+
+        FLASHApp copies params.json and experimental-design.tsv into the new
+        run before starting its worker. Do not observe later Configure edits
+        from another browser session while that worker is executing.
+        """
+        if for_execution and self.multi_run and self.run_id:
+            params = self.runs.params(self.run_id)
+            design_dir = self.runs.run_dir(self.run_id)
+        else:
+            params = self.parameter_manager.get_parameters_from_json()
+            design_dir = self.workflow_dir
         selected = self._selected(params)
-        design = load_design(self.workflow_dir, selected)
+        design = load_design(design_dir, selected)
         return selected, design, params
 
     def input_problems(self) -> str:
@@ -199,7 +209,7 @@ class MS1InclusionWorkflow(WorkflowManager):
     def execution(self) -> bool:
         """Validate and snapshot inputs. Returning True means *validation* passed."""
         try:
-            selected, design, params = self._saved_inputs()
+            selected, design, params = self._saved_inputs(for_execution=True)
             errors = validate_setup(selected, design, params)
             if errors:
                 for error in errors:
