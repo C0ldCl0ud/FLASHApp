@@ -8,6 +8,8 @@ params = page_setup()
 wf = MS1InclusionWorkflow()
 
 st.title("MS1 inclusion planning · Results")
+st.caption("Completed full runs include a combined inclusion list and "
+           "per-CV native FLASHIda files; validation-only runs contain configuration.")
 wf.show_results_section()
 st.divider()
 wf.show_run_manager_section()
