@@ -112,6 +112,17 @@ def test_reject_mismatched_design_order(setup_data):
     assert "in order" in " ".join(validate_setup(files, design, settings))
 
 
+def test_reject_colliding_deconvolution_output_stems(setup_data, tmp_path):
+    files, design, settings = setup_data
+    # Different extensions would produce the same deconv/<stem>/cv_groups.tsv.
+    raw = tmp_path / "AA.raw"
+    raw.write_text("placeholder")
+    files[1] = str(raw)
+    design.loc[1, "file"] = "AA.raw"
+    errors = validate_setup(files, design, settings)
+    assert any("basenames" in error for error in errors)
+
+
 def test_reject_no_or_one_input(setup_data):
     files, design, settings = setup_data
     assert "at least two" in " ".join(validate_setup([], design.iloc[:0], settings))
