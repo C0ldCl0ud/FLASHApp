@@ -188,7 +188,7 @@ def test_raw_is_recorded_as_pending_and_processed_without_fake_conversion(
     assert exp.run_rows[0]["raw_path"].endswith("AA.raw")
 
 
-class TestLogger:
+class FakeLogger:
     def __init__(self):
         self.messages = []
 
@@ -235,7 +235,7 @@ def test_full_pipeline_runs_all_steps_and_writes_results(
 
     report = execute_pipeline(
         files, design, params, results, tmp_path / "cache",
-        TestLogger(), fake_run, python="python3",
+        FakeLogger(), fake_run, python="python3",
         tool_resolver=lambda _p, _s: TOOLS,
     )
     assert len(executed) == 5  # Two deconv runs + alignment + stats + inclusion.
@@ -259,20 +259,17 @@ def test_failed_external_process_cannot_publish_pipeline_report(
     with pytest.raises(RuntimeError, match="MS1 stage failed"):
         execute_pipeline(
             files, design, params, root, tmp_path / "cache",
-            TestLogger(), lambda command: False, python="python3",
+            FakeLogger(), lambda command: False, python="python3",
             tool_resolver=lambda _p, _s: TOOLS,
         )
     assert not (root / "pipeline_report.json").exists()
 
 
-def test_missing_cv_detector_rejected_by_preflight(monkeypatch, experiment):
+def test_partial_consensus_required_by_alignment_commands(experiment):
     """Never substitute complete-case FLASHQuant when partial consensus is requested."""
-    files, _, params = experiment
-    # Real import validation is exercised in a thesis checkout; this test
-    # guards the no-native-filter fallback separately.
-    assert "--coverage-mode" in command_for_alignment(
-        Path("exp"), Path("deconv"), Path("align"), params, TOOLS
+    _, _, params = experiment
+    command = command_for_alignment(
+        Path("exp"), Path("deconv"), Path("align"), params, TOOLS,
     )
-    assert "partial" in command_for_alignment(
-        Path("exp"), Path("deconv"), Path("align"), params, TOOLS
-    )
+    assert _arg(command, "--coverage-mode") == "partial"
+    assert _arg(command, "--consensus-detector") == TOOLS["consensus_detector"]
