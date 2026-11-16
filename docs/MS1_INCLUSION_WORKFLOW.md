@@ -81,11 +81,14 @@ therefore not used for Thermo RAW input. Bruker \`.d\` inputs are converted to
 mzML by FLASHApp's existing Bruker conversion helper before passing to the
 thesis pipeline; this path needs instrument-specific validation.
 
-The UI exposes minimum mass and minimum charge settings, but the currently
-installed thesis \`deconv\` CLI has not yet implemented native switches for
-those constraints. **Full mode rejects nonzero minima** with an explicit
-error; it does not silently ignore the controls. Keep both set to zero until
-native parameter support is implemented and tested.
+The UI forwards positive minimum mass (Da) and minimum MS1 charge settings
+to the thesis `deconv --min-mass` / `--min-charge` CLI, which passes
+`-SD:min_mass` and `-SD:min_charge` into native FLASHDeconv before
+feature detection. Omitted or zero limits preserve the native defaults.
+This requires the thesis `main` implementation from PR #8 (or a feature
+branch containing that merge). A preflight checks that the installed thesis
+Python package accepts the filters; its native code verifies that the selected
+FLASHDeconv binary advertises the flags.
 
 ## Processing stages
 
