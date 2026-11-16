@@ -60,8 +60,19 @@ workflows:
   - ms1-files
   multi_run: true
   presets: true
-  # Scaffold: no scientific processing steps are executed yet.
-  steps: []
+  steps:
+  - external: tdp_flashdeconv.cli
+    in: ms1-files
+    note: Profile mzML conversion, FAIMS CV separation, per-CV centroiding and FLASHDeconv
+  - external: tdp_feature_alignment.cli
+    in: tdp_flashdeconv.cli
+    note: OpenMS RT alignment and modified native FLASHQuant partial consensus per CV
+  - external: tdp_differential_abundance.cli
+    in: tdp_feature_alignment.cli
+    note: Per-CV replicate-complete Welch t-tests with BH correction
+  - external: tdp_inclusion_list.cli
+    in: tdp_differential_abundance.cli
+    note: CV-aware quality, differential and condition-specific precursor targets
 results:
 - role: custom
   workflow: MS1 inclusion planning
@@ -123,7 +134,10 @@ sync:
   - src/Workflow.py
   - src/MS1InclusionWorkflow.py
   - src/ms1_inclusion_validation.py
+  - src/ms1_inclusion_pipeline.py
   - tests/test_ms1_inclusion_workflow.py
+  - tests/test_ms1_inclusion_pipeline.py
+  - docs/MS1_INCLUSION_WORKFLOW.md
   - js-component/*
   - .gitmodules
   - openms-streamlit-vue-component
