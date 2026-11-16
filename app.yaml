@@ -28,6 +28,13 @@ inputs:
     - peff
     multiple: false
     description: Protein database for FLASHTnT.
+  ms1-files:
+    types:
+    - mzML
+    - raw
+    - d
+    multiple: true
+    description: MS1 acquisitions for FAIMS-aware inclusion-list planning.
 workflows:
 - name: FLASHTnT
   class: src/Workflow.py:TopDownWorkflow
@@ -47,7 +54,19 @@ workflows:
     optional: true
   - tool: FLASHQuantConsensus
     optional: true
+- name: MS1 inclusion planning
+  class: src/MS1InclusionWorkflow.py:MS1InclusionWorkflow
+  inputs:
+  - ms1-files
+  multi_run: true
+  presets: true
+  # Scaffold: no scientific processing steps are executed yet.
+  steps: []
 results:
+- role: custom
+  workflow: MS1 inclusion planning
+  title: MS1 input and configuration validation report
+  page: content/MS1Inclusion/MS1InclusionResults.py
 - role: custom
   workflow: FLASHTnT
   title: Viewer (Vue grid)
@@ -59,6 +78,10 @@ pages:
 - content/TopDown/TopDownRun.py
 - content/TopDown/TopDownViewer.py
 - content/TopDown/TopDownDownload.py
+- content/MS1Inclusion/MS1InclusionUpload.py
+- content/MS1Inclusion/MS1InclusionConfigure.py
+- content/MS1Inclusion/MS1InclusionRun.py
+- content/MS1Inclusion/MS1InclusionResults.py
 deploy:
   k8s:
     enabled: true
@@ -98,6 +121,9 @@ sync:
   - .github/kind-config.yaml
   - CLAUDE.app.md
   - src/Workflow.py
+  - src/MS1InclusionWorkflow.py
+  - src/ms1_inclusion_validation.py
+  - tests/test_ms1_inclusion_workflow.py
   - js-component/*
   - .gitmodules
   - openms-streamlit-vue-component
