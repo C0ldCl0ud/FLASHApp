@@ -80,82 +80,109 @@ def _edit_plan(wf, running: bool) -> dict:
                 else:
                     _save_and_reset(root, plan, version_key)
 
-        if plan["runs"] and st.button("Apply E. coli AA–GD assignments",
-                                     help="Explicitly fill sample/condition/replicate from AA–AD and GA–GD suffixes. "
-                                          "No mapping is guessed unless you click this.",
-                                     key=f"flashida-sim-preset-{token}"):
-            try:
-                plan["runs"] = design.apply_ecoli_preset(plan["runs"])
-            except ValueError as exc:
-                st.error(str(exc))
-            else:
-                _save_and_reset(root, plan, version_key)
-
+    # Streamlit's data_editor maintains a client-side edit delta. Feeding its
+    # immediately edited return value back as the next data= argument while
+    # retaining the widget key makes the next rerun rebase an old delta onto a
+    # new table, often reverting the first typed value. Both tables now live
+    # in ONE form: edits remain stable until the user explicitly saves them.
     rows = pd.DataFrame(plan["runs"], columns=design.SOURCE_COLUMNS).fillna("")
-    if len(rows):
-        edited = st.data_editor(
-            rows, num_rows="dynamic", hide_index=True, width="stretch",
-            disabled=["file_path"] if not running else list(design.SOURCE_COLUMNS),
-            key=f"flashida-sim-table-{token}-{st.session_state.get(version_key, 0)}",
+    contrasts = pd.DataFrame(plan["contrasts"], columns=design.CONTRAST_COLUMNS).fillna("")
+    conditions = sorted({str(r.get("condition") or "").strip() for r in plan["runs"]} - {""})
+    version = st.session_state.get(version_key, 0)
+
+    st.caption("Edit the cells below, then click **Save acquisition design**. "
+               "Typing does not trigger a page refresh. The design can be saved "
+               "as an incomplete draft and is validated before simulation.")
+    with st.form(key=f"flashida-sim-design-form-{token}-{version}",
+                 clear_on_submit=False):
+        if len(rows):
+            edited = st.data_editor(
+                rows, num_rows="dynamic" if not running else "fixed",
+                hide_index=True, width="stretch",
+                disabled=["file_path"] if not running else list(design.SOURCE_COLUMNS),
+                key=f"flashida-sim-table-{token}-{version}",
+                column_config={
+                    "file_path": st.column_config.TextColumn(
+                        "MS1 RAW/mzML file", width="large"),
+                    "sample_id": st.column_config.TextColumn(
+                        "Sample ID", required=True,
+                        help="Biological sample identity, e.g. AA or GA"),
+                    "condition": st.column_config.TextColumn(
+                        "Condition", required=True,
+                        help="e.g. acetate or glucose; other labels also work"),
+                    "biological_replicate": st.column_config.TextColumn(
+                        "Bio. replicate", required=True,
+                        help="Globally unique positive integer per biological sample"),
+                    "faims_cv": st.column_config.TextColumn(
+                        "FAIMS CV (V)", help="e.g. -40"),
+                },
+            )
+        else:
+            edited = rows
+            st.info("Add one or more precollected MS1 files to begin.")
+
+        st.subheader("Differential-abundance contrasts")
+        st.caption("Define comparisons between conditions from the acquisition table. "
+                   "One-file tests can leave this empty; a contrast needs at least two "
+                   "biological replicates on each side.")
+        edited_contrasts = st.data_editor(
+            contrasts, num_rows="fixed" if running else "dynamic",
+            hide_index=True, width="stretch", disabled=running,
+            key=f"flashida-sim-contrast-{token}-{version}",
             column_config={
-                "file_path": st.column_config.TextColumn("MS1 RAW/mzML file", width="large"),
-                "sample_id": st.column_config.TextColumn("Sample ID", required=True,
-                                                          help="Biological sample identity, e.g. AA or GA"),
-                "condition": st.column_config.TextColumn("Condition", required=True,
-                                                          help="e.g. acetate or glucose; arbitrary condition labels supported"),
-                "biological_replicate": st.column_config.TextColumn(
-                    "Bio. replicate", required=True,
-                    help="Positive integer, globally unique for different biological samples"),
-                "faims_cv": st.column_config.TextColumn("FAIMS CV (V)",
-                                                       help="CV for this file; e.g. -40"),
+                "contrast_id": st.column_config.TextColumn(
+                    "Contrast ID", required=True),
+                # Text columns allow a newly typed condition in the acquisition
+                # table to be used before the next save/rerender.
+                "condition_a": st.column_config.TextColumn(
+                    "Condition A", required=True),
+                "condition_b": st.column_config.TextColumn(
+                    "Condition B", required=True),
             },
         )
-        edited_rows = [{field: str(r.get(field) or "").strip()
-                        for field in design.SOURCE_COLUMNS}
-                       for r in edited.to_dict(orient="records")]
-        if not running and edited_rows != plan["runs"]:
-            plan["runs"] = edited_rows
-            design.save_plan(root, plan)
-    else:
-        st.info("Add one or more precollected MS1 files to begin. Each selected file becomes a design row.")
+        save = st.form_submit_button(
+            "Save acquisition design", type="primary", disabled=running)
+        apply_ecoli = st.form_submit_button(
+            "Save and apply E. coli AA–GD assignments", disabled=running or not len(rows))
+        add_glucose = st.form_submit_button(
+            "Save and add glucose_vs_acetate contrast",
+            disabled=running or not len(rows))
 
-    st.subheader("Differential-abundance contrasts")
-    st.caption("Contrasts are defined here, using the conditions entered above. "
-               "A single-file simulation may have no contrast; statistical testing needs "
-               "at least two biological replicates in each compared condition.")
-    conditions = sorted({str(r.get("condition") or "").strip() for r in plan["runs"]}
-                        - {""})
-    if not running and {"acetate", "glucose"} <= set(conditions):
-        if st.button("Add glucose_vs_acetate contrast", key=f"flashida-sim-default-contrast-{token}",
-                     disabled=any(x.get("contrast_id") == "glucose_vs_acetate"
-                                  for x in plan["contrasts"])):
-            plan["contrasts"].append({
-                "contrast_id": "glucose_vs_acetate",
-                "condition_a": "glucose", "condition_b": "acetate",
-            })
-            _save_and_reset(root, plan, version_key)
-    contrasts = pd.DataFrame(plan["contrasts"], columns=design.CONTRAST_COLUMNS).fillna("")
-    if not running:
-        st.caption("Add or remove contrast rows in the editable table.")
-    edited_contrasts = st.data_editor(
-        contrasts, num_rows="fixed" if running else "dynamic", hide_index=True,
-        width="stretch", disabled=running,
-        key=f"flashida-sim-contrast-{token}-{st.session_state.get(version_key, 0)}",
-        column_config={
-            "contrast_id": st.column_config.TextColumn("Contrast ID", required=True),
-            "condition_a": st.column_config.SelectboxColumn("Condition A", options=conditions,
-                                                              required=True),
-            "condition_b": st.column_config.SelectboxColumn("Condition B", options=conditions,
-                                                              required=True),
-        },
-    )
-    if not running:
-        updated = [{field: str(r.get(field) or "").strip()
-                    for field in design.CONTRAST_COLUMNS}
-                   for r in edited_contrasts.to_dict(orient="records")]
-        if updated != plan["contrasts"]:
-            plan["contrasts"] = updated
-            design.save_plan(root, plan)
+    if not running and (save or apply_ecoli or add_glucose):
+        def normalized(value):
+            return "" if pd.isna(value) else str(value).strip()
+
+        candidate = {
+            "runs": [
+                {field: normalized(row.get(field))
+                 for field in design.SOURCE_COLUMNS}
+                for row in edited.to_dict(orient="records")
+            ],
+            "contrasts": [
+                {field: normalized(row.get(field))
+                 for field in design.CONTRAST_COLUMNS}
+                for row in edited_contrasts.to_dict(orient="records")
+            ],
+        }
+        try:
+            if apply_ecoli:
+                candidate["runs"] = design.apply_ecoli_preset(candidate["runs"])
+            if add_glucose:
+                actual = {row["condition"] for row in candidate["runs"]}
+                if not {"glucose", "acetate"} <= actual:
+                    raise ValueError(
+                        "Assign glucose and acetate conditions in the table first.")
+                if not any(c.get("contrast_id") == "glucose_vs_acetate"
+                           for c in candidate["contrasts"]):
+                    candidate["contrasts"].append({
+                        "contrast_id": "glucose_vs_acetate",
+                        "condition_a": "glucose",
+                        "condition_b": "acetate",
+                    })
+        except ValueError as exc:
+            st.error(str(exc))
+        else:
+            _save_and_reset(root, candidate, version_key)
     return plan
 
 
