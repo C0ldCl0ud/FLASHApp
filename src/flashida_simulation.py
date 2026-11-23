@@ -252,6 +252,10 @@ def execute(params: dict, workflow_dir: Path, logger) -> bool:
                                cv=cv, max_scans=limit)
     meta = {"state": "preparing", "source": str(source), "method": str(method),
             "cv": cv, "max_scans": limit or "all", "run_directory": str(folder),
+            "sample_id": str(params.get("sample-id") or ""),
+            "condition": str(params.get("condition") or ""),
+            "biological_replicate": str(params.get("biological-replicate") or ""),
+            "experimental_design": str(params.get("experimental-design") or ""),
             "started_utc": datetime.now(timezone.utc).isoformat()}
     write_json(folder / "simulation.json", meta)
     producer = consumer = None
@@ -338,3 +342,57 @@ def stop_children(folder: Path) -> None:
                                capture_output=True, timeout=10, check=False)
         except (psutil.NoSuchProcess, psutil.AccessDenied, ProcessLookupError):
             continue
+
+
+
+def execute_batch(params: dict, workflow_dir: Path, logger) -> bool:
+    """Replay exactly the per-file plan that also generates the OpenMS design.
+
+    A failed file stops the batch; successful files and acquisition logs remain
+    available. No MS2 commands are converted into spectra or identifications.
+    """
+    from src.flashida_experiment import load_plan, validated_plan, generate_design
+    plan = validated_plan(load_plan(workflow_dir))
+    design_dir = Path(workflow_dir) / "experimental_design"
+    generate_design(plan, design_dir, project_dir=str(params.get("wsl-project") or ""))
+    root = run_root(workflow_dir, params)
+    root.mkdir(parents=True, exist_ok=True)
+    batch = root / ("batch_" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+                    + "_" + uuid4().hex[:8] + ".json")
+    record = {"state": "running", "design": str(design_dir),
+              "files": plan["runs"], "contrasts": plan["contrasts"],
+              "outcomes": []}
+    write_json(batch, record)
+    try:
+        for i, row in enumerate(plan["runs"], 1):
+            logger.log(f"FLASHIda baseline MS1 replay {i}/{len(plan['runs'])}: {row['file_path']}")
+            per_run = dict(params, **{
+                "ms1-source": row["file_path"],
+                "faims-cv": row["faims_cv"],
+                "sample-id": row["sample_id"],
+                "condition": row["condition"],
+                "biological-replicate": row["biological_replicate"],
+                "experimental-design": str(design_dir),
+            })
+            before = set(list_runs(workflow_dir, params))
+            success = execute(per_run, workflow_dir, logger)
+            created = [p for p in list_runs(workflow_dir, params) if p not in before]
+            record["outcomes"].append({
+                "file_path": row["file_path"], "sample_id": row["sample_id"],
+                "condition": row["condition"],
+                "biological_replicate": row["biological_replicate"],
+                "directory": str(created[0]) if created else "",
+                "success": success,
+            })
+            write_json(batch, record)
+            if not success:
+                record["state"] = "failed"
+                write_json(batch, record)
+                return False
+        record["state"] = "complete"
+        write_json(batch, record)
+        return True
+    except BaseException:
+        record["state"] = "interrupted"
+        write_json(batch, record)
+        raise
