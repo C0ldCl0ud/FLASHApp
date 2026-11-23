@@ -116,7 +116,7 @@ def design_command(*, project: str, environment: str, raw_dir: str,
               shlex.quote(to_wsl_path(Path(raw_dir).resolve())) +
               " --out " + shlex.quote(to_wsl_path(root.resolve())) +
               " --preset ecoli-aa-gd")
-    return ["wsl.exe", "--exec", "/bin/bash", "-lc", script]
+    return ["bash", "-lc", script] if is_wsl() else ["wsl.exe", "--exec", "/bin/bash", "-lc", script]
 
 
 def create_experiment_design(*, project: str, environment: str, raw_dir: str,
