@@ -1,5 +1,6 @@
 """Explicit per-acquisition MS1 design and contrast tests."""
 from pathlib import Path
+import os
 from unittest.mock import patch
 import json
 
@@ -114,3 +115,39 @@ def test_batch_uses_same_file_design_to_replay_every_input(tmp_path):
     assert batch["state"] == "complete"
     assert len(batch["outcomes"]) == 2
     assert all(x["success"] for x in batch["outcomes"])
+
+
+
+def test_openms_design_generated_with_real_thesis_api(tmp_path):
+    project = os.environ.get("FLASHIDA_THESIS_SOURCE")
+    if not project:
+        pytest.skip("Set FLASHIDA_THESIS_SOURCE to run against the real thesis design package.")
+    files = [(_file(tmp_path, name + ".raw"), name, group, rep)
+             for name, group, rep in [
+                 ("20260315_MS1_AA", "acetate", "1"),
+                 ("20260315_MS1_AB", "acetate", "2"),
+                 ("20260315_MS1_GA", "glucose", "5"),
+                 ("20260315_MS1_GB", "glucose", "6")]]
+    plan = {
+        "runs": [_row(path, name[-2:], group, rep) for path, name, group, rep in files],
+        "contrasts": [{"contrast_id": "glucose_vs_acetate",
+                       "condition_a": "glucose", "condition_b": "acetate"}],
+    }
+    output = tmp_path / "design"
+    result = d.generate_design(plan, output, project_dir=project)
+    assert result["ms1_files"] == 4
+    import csv
+    with (output / "design.tsv").open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f, delimiter="\t"))
+    assert len(rows) == 4
+    assert {row["MSstats_Condition"] for row in rows} == {"glucose", "acetate"}
+    assert {row["MSstats_BioReplicate"] for row in rows} == {"1", "2", "5", "6"}
+    with (output / "run_metadata.tsv").open(encoding="utf-8", newline="") as f:
+        metadata = list(csv.DictReader(f, delimiter="\t"))
+    assert all(row["acquisition_type"] == "MS1_ONLY" for row in metadata)
+    assert all(row["mzml_status"] == "pending" for row in metadata)
+    assert all(json.loads(row["faims_cv_volts"]) == [-40.0] for row in metadata)
+    assert (output / "contrast.tsv").read_text(encoding="utf-8") == (
+        "contrast_id\tcondition_a\tcondition_b\n"
+        "glucose_vs_acetate\tglucose\tacetate\n"
+    )
