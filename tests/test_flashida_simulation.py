@@ -132,3 +132,27 @@ def test_design_uses_existing_thesis_api_and_creates_only_explicit_contrast(tmp_
     with pytest.raises(FileExistsError):
         sim.design_command(project="/mnt/c/project", environment="openms-experiments",
                            raw_dir=str(raw_dir), design_dir=str(output))
+
+
+def test_one_biological_replicate_per_condition_produces_draft_without_contrast(tmp_path):
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    output = tmp_path / "experiment"
+    output.mkdir()
+
+    def fake_run(command, **kwargs):
+        (output / "design.tsv").write_text(
+            "Sample\tMSstats_Condition\tMSstats_BioReplicate\n"
+            "AA\tacetate\t1\nGA\tglucose\t5\n", encoding="utf-8")
+        (output / "run_metadata.tsv").write_text("run_id\nAA\nGA\n", encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    with patch.object(sim, "os", SimpleNamespace(name="nt")), \
+         patch.object(sim, "to_wsl_path", side_effect=lambda path: "/mnt/c/" + Path(str(path)).name), \
+         patch.object(sim.subprocess, "run", side_effect=fake_run):
+        result = sim.create_experiment_design(
+            project="/mnt/c/project", environment="openms-experiments",
+            raw_dir=str(raw_dir), design_dir=str(output))
+    assert result["replicates_by_condition"] == {"acetate": 1, "glucose": 1}
+    assert not result["contrast_created"]
+    assert not (output / "contrast.tsv").exists()
