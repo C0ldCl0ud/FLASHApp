@@ -1,4 +1,4 @@
-"""Windows-only MS1 replay for the hidden developer FLASHIda interface."""
+"""Local Windows/WSL MS1 replay for the hidden developer FLASHIda interface."""
 from __future__ import annotations
 
 import csv
@@ -7,11 +7,59 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import shlex
 import subprocess
 import threading
 import time
 from uuid import uuid4
+
+
+def is_wsl() -> bool:
+    """True in WSL2, not on ordinary Linux hosts (where Windows interop is unavailable)."""
+    if os.name != "posix":
+        return False
+    if os.environ.get("WSL_DISTRO_NAME"):
+        return True
+    try:
+        return "microsoft" in Path("/proc/sys/kernel/osrelease").read_text().lower()
+    except OSError:
+        return False
+
+
+def supported_host() -> bool:
+    return os.name == "nt" or is_wsl()
+
+
+def to_windows_path(path: str | Path) -> str:
+    """Translate a default /mnt/<drive> WSL path for a Windows .NET executable."""
+    value = str(path)
+    match = re.fullmatch(r"/mnt/([A-Za-z])(?:/(.*))?", value)
+    if not match:
+        raise ValueError("Simulation output must be on a Windows-mounted drive, e.g. /mnt/c/flashida_sim.")
+    tail = (match.group(2) or "").replace("/", "\\")
+    return match.group(1).upper() + ":\\" + tail
+
+
+def run_root(workflow_dir: Path, params: dict | None = None) -> Path:
+    """Preserve run data on NTFS for WSL + Windows producer/consumer sharing."""
+    configured = str((params or {}).get("simulation-output-root") or "").strip()
+    if is_wsl():
+        path = Path(to_wsl_path(configured) if configured
+                    else "/mnt/c/flashida_sim/flashapp_runs")
+        # Never use the WSL ext4 workspace: Windows status updates need
+        # the same shared local NTFS drive as the Python producer.
+        to_windows_path(path)
+        return path.resolve()
+    return Path(configured).resolve() if configured else Path(workflow_dir) / "runs"
+
+
+def consumer_command(exe: Path, folder: Path) -> list[str]:
+    """The Windows .NET process must receive Windows paths, even from WSL."""
+    if is_wsl():
+        return [str(exe), "--simulate-directory", to_windows_path(folder),
+                to_windows_path(folder / "method.json")]
+    return [str(exe), "--simulate-directory", str(folder), str(folder / "method.json")]
 
 
 def to_wsl_path(path: str | Path) -> str:
@@ -53,7 +101,7 @@ def producer_command(*, project: str, environment: str, input_file: str,
         if int(max_scans) <= 0:
             raise ValueError("Scan limit must be positive.")
         script += " --max-scans " + shlex.quote(str(int(max_scans)))
-    return ["wsl.exe", "--exec", "/bin/bash", "-lc", script]
+    return ["bash", "-lc", script] if is_wsl() else ["wsl.exe", "--exec", "/bin/bash", "-lc", script]
 
 
 def design_command(*, project: str, environment: str, raw_dir: str,
@@ -75,8 +123,8 @@ def create_experiment_design(*, project: str, environment: str, raw_dir: str,
                              design_dir: str) -> dict:
     command = design_command(project=project, environment=environment,
                              raw_dir=raw_dir, design_dir=design_dir)
-    if os.name != "nt":
-        raise RuntimeError("The WSL design integration requires the local Windows app.")
+    if not supported_host():
+        raise RuntimeError("The design action requires local FLASHApp on Windows or WSL.")
     result = subprocess.run(command, capture_output=True, text=True,
                             errors="replace", timeout=180, check=False)
     if result.returncode:
@@ -121,8 +169,8 @@ def read_run(folder: Path) -> dict:
         return {}
 
 
-def list_runs(root: Path) -> list[Path]:
-    directory = root / "runs"
+def list_runs(workflow_dir: Path, params: dict | None = None) -> list[Path]:
+    directory = run_root(workflow_dir, params)
     return sorted((p for p in directory.iterdir() if p.is_dir()), reverse=True) if directory.is_dir() else []
 
 
@@ -158,6 +206,11 @@ def _kill(proc: subprocess.Popen | None) -> None:
     if os.name == "nt":
         subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
                        capture_output=True, timeout=10, check=False)
+    elif is_wsl():
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
     else:
         proc.terminate()
     try:
@@ -167,8 +220,8 @@ def _kill(proc: subprocess.Popen | None) -> None:
 
 
 def execute(params: dict, workflow_dir: Path, logger) -> bool:
-    if os.name != "nt":
-        raise RuntimeError("FLASHIda MS1 simulation requires local Windows FLASHApp.")
+    if not supported_host():
+        raise RuntimeError("FLASHIda MS1 simulation requires Windows or WSL with Windows interop.")
     source = Path(str(params.get("ms1-source") or "").strip()).resolve()
     exe = Path(str(params.get("simulator-executable") or "").strip()).resolve()
     method = Path(str(params.get("simulation-method") or "").strip()).resolve()
@@ -184,7 +237,7 @@ def execute(params: dict, workflow_dir: Path, logger) -> bool:
     targeting = (parsed.get("precursor_selection") or {}).get("targeting", "none")
     if targeting != "none":
         raise ValueError("Only baseline targeting=none is supported in this milestone.")
-    root = workflow_dir / "runs"
+    root = run_root(workflow_dir, params)
     root.mkdir(parents=True, exist_ok=True)
     folder = root / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
                      + "_" + uuid4().hex[:8])
@@ -199,10 +252,11 @@ def execute(params: dict, workflow_dir: Path, logger) -> bool:
     write_json(folder / "simulation.json", meta)
     producer = consumer = None
     try:
-        logger.log("Preparing centroided MS1 input through WSL...")
+        logger.log("Preparing centroided MS1 input in WSL...")
         producer = subprocess.Popen(command, stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT, text=True,
-                                    errors="replace", bufsize=1)
+                                    errors="replace", bufsize=1,
+                                    **({"start_new_session": True} if is_wsl() else {}))
         meta["producer_pid"] = producer.pid
         write_json(folder / "simulation.json", meta)
         ready = threading.Event()
@@ -215,11 +269,11 @@ def execute(params: dict, workflow_dir: Path, logger) -> bool:
                 raise TimeoutError("MS1 preparation exceeded 30 minutes.")
         logger.log("Starting FLASHIda standalone native acquisition simulator...")
         meta["state"] = "running"
-        consumer = subprocess.Popen([str(exe), "--simulate-directory", str(folder),
-                                     str(folder / "method.json")],
+        consumer = subprocess.Popen(consumer_command(exe, folder),
                                     cwd=str(exe.parent), stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT, text=True,
-                                    errors="replace", bufsize=1)
+                                    errors="replace", bufsize=1,
+                                    **({"start_new_session": True} if is_wsl() else {}))
         meta["consumer_pid"] = consumer.pid
         write_json(folder / "simulation.json", meta)
         _capture(consumer, folder / "consumer.log")
@@ -253,26 +307,28 @@ def execute(params: dict, workflow_dir: Path, logger) -> bool:
 
 
 def stop_children(folder: Path) -> None:
-    """Stop tracked Windows children only if their process names still match."""
-    if os.name != "nt":
+    """Terminate only the processes recorded for this run; reject reused PIDs."""
+    if not supported_host():
         return
     import psutil
+
     data = read_run(folder)
-    for key, needle in (("producer_pid", "wsl"), ("consumer_pid", "flash.simulator")):
+    for key, needle in (("producer_pid", "tdp_instrument_simulator"),
+                        ("consumer_pid", "flash.simulator.exe")):
         pid = data.get(key)
         if not isinstance(pid, int):
             continue
         try:
             p = psutil.Process(pid)
             command = " ".join(p.cmdline()).lower()
-            identity = (p.name() + " " + command).lower()
-            # A PID can be reused. Confirm both the expected executable and
-            # *this* run directory before terminating its process tree.
-            marker = (to_wsl_path(folder) if key == "producer_pid"
-                      else str(folder)).lower()
-            if needle not in identity or marker not in command:
+            run_marker = (to_windows_path(folder) if is_wsl() and
+                          key == "consumer_pid" else str(folder)).lower()
+            if needle not in command or run_marker not in command:
                 continue
-            subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"],
-                           capture_output=True, timeout=10, check=False)
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            if is_wsl():
+                os.killpg(pid, signal.SIGTERM)
+            else:
+                subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"],
+                               capture_output=True, timeout=10, check=False)
+        except (psutil.NoSuchProcess, psutil.AccessDenied, ProcessLookupError):
             continue
