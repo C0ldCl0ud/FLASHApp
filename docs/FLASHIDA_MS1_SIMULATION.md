@@ -1,135 +1,121 @@
-# Offline FLASHIda MS1 simulation (developer-only desktop feature)
+# FLASHIda Acquisition — instrument or offline MS1 simulation
 
-The standalone Windows FLASHIda simulator, launched from local FLASHApp on Windows **or WSL**, can replay a *previously acquired
-MS1-only* Thermo RAW or mzML file through the native FLASHIda acquisition
-engine. Its MS2 requests are logged but **not fulfilled** by fragment spectra.
-This is **not** an instrument-control interface and never launches Flash.exe.
+The hidden local developer FLASHIda → Acquisition page now offers an
+**Instrument / Simulation** selector rather than a separate simulation page.
 
-This page is available in **local FLASHApp with developer mode unlocked** (including the preexisting WSL installation at `~/openms-development/FLASHApp`):
-**FLASHIda → MS1 simulation**. Hosted FLASHApp and ordinary Linux without Windows interop cannot use this build. The existing real-instrument Acquisition page is unchanged.
+- **Instrument** preserves the existing Thermo/Xcalibur raw-file watcher and
+  launches the real instrument Flash.exe.
+- **Simulation** reads precollected MS1-only RAW or mzML files and launches the
+  standalone Windows Flash.Simulator.exe. It NEVER controls the instrument.
 
-## Prerequisites
+Changing modes is disabled while either backend is running.
 
-- Either Windows FLASHApp with WSL2, or the existing FLASHApp running inside WSL2 (`conda activate flashapp-ms1; cd ~/openms-development/FLASHApp`).
-- WSL thesis repository, e.g.
-  /mnt/c/Users/langm/PycharmProjects/TDP_master_thesis, checked out with
-  tdp_instrument_simulator installed or importable from that directory.
-- WSL conda environment openms-experiments with FileConverter, PeakPickerHiRes
-  and the existing centroiding cache. The runner uses
-  $HOME/miniconda3/bin/conda by default; override via CONDA_EXE in the WSL
-  environment if conda is elsewhere.
-- Standalone C# executable Flash.Simulator.exe built from
-  Flash.Simulator.sln, with the **compatible** OpenMS.dll and dependent native
-  DLLs beside it. The proprietary Thermo instrument DLLs are not required.
-- FLASHIda method JSON for the same FAIMS CV as the selected source; set
-  precursor_selection.targeting to none. The first milestone deliberately
-  excludes guided selection.
+## Simulation: files and experimental design together
 
-## Replay an MS1-only file
+Choose the folder containing the precollected MS1 files and select which files
+to add to the simulation acquisition table. Each file has its own editable row:
 
-1. In FLASHApp developer settings unlock developer mode and select
-   **FLASHIda → MS1 simulation**.
-2. Enter the path to the precollected AA or GA RAW/mzML file. In WSL, use `/mnt/c/...`; on Windows, use `C:\...`.
-   Do not upload/copy an enormous RAW into Streamlit: the runner accesses the
-   source directly through the Windows/WSL shared drive.
-3. Enter the paths to Flash.Simulator.exe and method_cv_m40.json (in WSL use `/mnt/c/dev/FlashIDA/...` and `/mnt/c/flashida_sim/method_cv_m40.json`), plus the
-   WSL thesis project directory and conda environment.
-4. Choose FAIMS CV -40 and optionally **100** as the scan limit; a blank
-   limit processes the whole run. Click **Run simulation**.
-5. The app starts the **WSL producer first** and waits for its "Prepared"
-   message (so cold-cache centroiding cannot make the Windows consumer time
-   out). It then launches the Windows native consumer in the **same
-   per-run directory**. When FLASHApp runs in WSL, it uses native WSL `bash` for the producer and Windows executable interop for the consumer, translating Windows paths before passing them to .NET.
-6. View the status and download commands.tsv, replay_log.tsv,
-   consumer_status.json, producer.log, consumer.log, simulation.json and the
-   copied method.json.
+| Column | Meaning |
+| --- | --- |
+| MS1 RAW/mzML file | Absolute source path, no Streamlit upload/copy |
+| Sample ID | Biological sample identity |
+| Condition | Experiment group, e.g. acetate or glucose |
+| Bio. replicate | Positive ID unique between biological samples |
+| FAIMS CV (V) | Compensation voltage to replay, e.g. -40 |
 
-Replays are preserved in:
-- WSL: `/mnt/c/flashida_sim/flashapp_runs/<UTC timestamp>_<random ID>/` (configurable in the UI; must remain under `/mnt/<drive>/`)
-- Windows: `<workspace>/flashida-ms1-simulation/runs/<UTC timestamp>_<random ID>/`
+All rows are saved with the acquisition configuration, not in a later
+disconnected form. Different files of the same biological sample can retain
+the same sample/replicate combination, as technical injections.
 
-The workflow status is "complete" only if the Windows consumer reaches
-state=complete and acknowledges every scan. Requests in commands.tsv with
-disposition=unfulfilled are prospective MS2 targets only. No identification
-or statistical comparison is calculated by this page.
+The optional **Apply E. coli AA–GD assignments** button explicitly maps
+AA–AD to acetate replicates 1–4 and GA–GD to glucose replicates 5–8.
+File suffixes are not interpreted unless you click it. Other conditions and
+samples may be entered manually.
 
-Stopping a running replay attempts to terminate the recorded Windows and
-WSL child process trees. Run directories are never reused, and interrupted
-runs remain available for diagnosis.
+Use the adjacent **Differential-abundance contrasts** table to define
+contrast ID, condition A and condition B. The convenience action adds
+glucose_vs_acetate = glucose vs acetate. Each contrast requires at least
+two biological replicates in both conditions. A one-file simulator test can
+produce a valid draft design without any contrasts.
 
-The initial working configuration used:
-- WSL input: data/20260315_Ecoli_SPE_FAIMS1CV_0p5ul_30min_MS1_AA.raw
-- Windows simulator:
-  C:\dev\FlashIDA\src\Flash.Simulator\bin\x64\Debug\Flash.Simulator.exe
-- Windows method: C:\flashida_sim\method_cv_m40.json
-- WSL environment: openms-experiments
-- FAIMS CV: -40 V
+This editable configuration is persisted in the workspace file
+flashida-ms1-simulation/simulation-plan.json. It is also the input to the
+simulator worker: you cannot accidentally run a different file list than the
+one used to generate the statistical design.
 
-## Experimental design and contrasts are separate from simulation
+## Exported design and contrasts
 
-The bottom of the page includes **Create E. coli design and contrast**.
-Point it to the folder with AA–AD (acetate) and GA–GD (glucose) MS1
-acquisitions and to a new output folder. The action invokes the existing
-tdp_experiment_design init --preset ecoli-aa-gd implementation from the
-thesis repository. It saves:
+Click **Save experimental design**. FLASHApp uses the existing thesis package
+tdp_experiment_design to build and validate:
 
-- design.tsv: OpenMS MS1 one-table design with condition and BioReplicate.
-- run_metadata.tsv: separate source/acquisition metadata.
-- contrast.tsv: header contrast_id, condition_a, condition_b and row
-  glucose_vs_acetate, glucose, acetate **if both conditions have at least two biological replicates**.
+  <workspace>/flashida-ms1-simulation/experimental_design/design.tsv
+  <workspace>/flashida-ms1-simulation/experimental_design/run_metadata.tsv
+  <workspace>/flashida-ms1-simulation/experimental_design/contrast.tsv
+  <workspace>/flashida-ms1-simulation/experimental_design/simulation_plan.json
 
-The tool refuses to overwrite existing design/contrast files. The E. coli
-preset is explicit: do not use it for unrelated filenames or experiments.
-Review sample assignments before analysis.
+The OpenMS design contains only the selected MS1 sources, with each
+acquisition's Sample, MSstats_Condition and MSstats_BioReplicate. The separate
+run metadata holds the original source file and FAIMS CV.
 
-**Crucial**: a RAW-only input produces pending *expected* mzML paths in
-design.tsv. These are not yet the actual cached centroided/converted mzML
-paths. Once the real conversion is available, update the design and metadata
-paths and validate:
+Important: RAW-only acquisitions have expected mzML paths marked pending.
+These must be replaced by real converted mzML paths before the normal
+FLASHDeconv → FLASHQuant alignment → differential-abundance workflow.
+The saved contrast.tsv has the same required columns as that workflow,
+and is header-only for a draft without contrasts.
 
-    python -m tdp_experiment_design validate --input-dir experiments/ecoli_full --mode ready
+## Running the replay
 
-Only then run the normal MS1 pipeline (FLASHDeconv → FLASHQuant alignment →
-differential_abundance with --contrasts contrast.tsv → inclusion-list
-generation). The simulation and MS1 statistics remain independent in this
-milestone; comparison of the resulting MS2 requests with the inclusion list is
-manual.
+Select the standalone simulator executable, baseline method JSON, thesis
+project location and WSL conda environment in Simulator configuration.
+Click **Run MS1 simulation**. This validates and saves the design again,
+then replays every selected source sequentially, recording its condition,
+sample and replicate in the corresponding simulation.json.
 
-## Compatibility and limitations
+The run folder includes commands.tsv (MS2 requests), replay_log.tsv,
+consumer_status.json, producer.log, consumer.log and method.json.
+The output root also contains a batch manifest mapping source files and
+experimental-design rows to the individual result folders.
 
-- WSL source/method/executable paths must use Linux syntax (`/mnt/c/...`), and the Windows executable must support WSL interop. The conversion assumes local Windows drive letters mounted at /mnt/c,
-  /mnt/d etc. UNC/network drives and custom WSL mount roots are not supported.
-- Native MS2 fragmentation, AGC scan response and identification are outside
-  this MS1-only simulation. No generated requests are claimed to be acquired.
-- Real-time scheduling in the native engine has wall-clock components; this
-  replay does not prove instrument-equivalent timing.
-- The Windows native binaries are not packaged with FLASHApp. Configure an
-  already built compatible simulator, and keep matching OpenMS.dll in its
-  executable directory.
-- The implementation is covered by platform-independent orchestration tests;
-  an actual Windows/WSL end-to-end desktop run still needs validation.
+These MS2 requests remain unfulfilled: the original files have MS1 spectra
+only, and the simulator does not create fragments or identifications.
+Evaluation against the subsequent inclusion list is manual at this stage.
 
-## Reuse the pre-existing WSL FLASHApp installation
+## Reuse our already installed WSL FLASHApp
 
-In the WSL terminal (not PowerShell):
+In the existing WSL terminal:
 
-```bash
-conda activate flashapp-ms1
-cd ~/openms-development/FLASHApp
-git status
-git fetch origin
-git switch feature/flashida-ms1-simulation || git switch --track origin/feature/flashida-ms1-simulation
-git pull --ff-only
-python -m streamlit run app.py local
-```
+    conda activate flashapp-ms1
+    cd ~/openms-development/FLASHApp
+    git fetch origin
+    git switch feature/flashida-ms1-simulation
+    git pull --ff-only
+    python -m streamlit run app.py local
 
-Open http://localhost:8501 on Windows. The hidden developer page appears after unlocking developer mode in Settings. Enter WSL paths:
+Open http://localhost:8501 and unlock developer mode.
 
-- MS1 file: `/mnt/c/Users/langm/PycharmProjects/TDP_master_thesis/data/20260315_Ecoli_SPE_FAIMS1CV_0p5ul_30min_MS1_AA.raw`
-- Simulator: `/mnt/c/dev/FlashIDA/src/Flash.Simulator/bin/x64/Debug/Flash.Simulator.exe`
-- Method: `/mnt/c/flashida_sim/method_cv_m40.json`
-- WSL project: `/mnt/c/Users/langm/PycharmProjects/TDP_master_thesis`
-- Environment: `openms-experiments`, CV `-40`, scan limit `100`
-- Shared output: `/mnt/c/flashida_sim/flashapp_runs`
+Known local paths:
 
-For experiment design, also use WSL paths to the eight RAW files and to a **new** experiment directory. The page invokes the thesis conda environment natively (without `wsl.exe`) when FLASHApp itself runs in WSL.
+- MS1 folder: /mnt/c/Users/langm/PycharmProjects/TDP_master_thesis/data
+- Windows simulator: /mnt/c/dev/FlashIDA/src/Flash.Simulator/bin/x64/Debug/Flash.Simulator.exe
+- Baseline method: /mnt/c/flashida_sim/method_cv_m40.json
+- Thesis project: /mnt/c/Users/langm/PycharmProjects/TDP_master_thesis
+- WSL conda environment: openms-experiments
+- FAIMS CV for AA test: -40
+- Scan limit for first test: 100
+- Replay output: /mnt/c/flashida_sim/flashapp_runs
+
+The Windows .NET simulator must retain the compatible OpenMS.dll and its
+native dependencies. Results must be stored on a Windows-mounted drive under
+/mnt/c or equivalent, so WSL and Windows share the same directory.
+
+## Current scope and limitations
+
+- The real-instrument mode is unchanged and isolated from simulation.
+- This milestone supports baseline FLASHIda targeting only, not inclusion-list
+  guided replay or artificial MS2 fragmentation.
+- A batch currently shares one method JSON, while FAIMS CV is specified per
+  file. Ensure the method's CV matches each source.
+- Windows/WSL integration tests and protocol tests run in CI; an actual
+  end-to-end click-through still requires a test in the installed FLASHApp.
+- No automated evaluation or statistical analysis is performed by the
+  acquisition page. The generated design and contrasts feed those next stages.
