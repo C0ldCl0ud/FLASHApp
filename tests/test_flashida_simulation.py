@@ -111,7 +111,9 @@ def test_design_uses_existing_thesis_api_and_creates_only_explicit_contrast(tmp_
         assert "tdp_experiment_design init" in command[-1]
         assert "--preset ecoli-aa-gd" in command[-1]
         (output / "design.tsv").write_text(
-            "Sample\tMSstats_Condition\nAA\tacetate\nGA\tglucose\n",
+            "Sample\tMSstats_Condition\tMSstats_BioReplicate\n"
+            "AA\tacetate\t1\nAB\tacetate\t2\n"
+            "GA\tglucose\t5\nGB\tglucose\t6\n",
             encoding="utf-8")
         (output / "run_metadata.tsv").write_text("run_id\nAA\nGA\n", encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, "generated", "")
