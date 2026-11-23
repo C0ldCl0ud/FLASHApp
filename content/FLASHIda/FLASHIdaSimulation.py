@@ -52,10 +52,19 @@ a, b = st.columns([4, 1])
 if running:
     a.write("Replay in progress. The results below update while the native engine runs.")
     if b.button("⏹ Stop replay", use_container_width=True):
-        for folder in simulation.list_runs(wf.workflow_dir):
-            if simulation.read_run(folder).get("state") in ("preparing", "running"):
-                simulation.stop_children(folder)
-        wf.stop_workflow()
+        active = [folder for folder in simulation.list_runs(wf.workflow_dir)
+                  if simulation.read_run(folder).get("state") in ("preparing", "running")]
+        for folder in active:
+            simulation.stop_children(folder)
+        if wf.stop_workflow():
+            # Terminating a workflow worker bypasses its Python finally block.
+            # Explicitly mark preserved runs so they are never shown as running forever.
+            for folder in active:
+                manifest = simulation.read_run(folder)
+                if manifest.get("state") in ("preparing", "running"):
+                    manifest["state"] = "cancelled"
+                    manifest["error"] = "Stopped by user"
+                    simulation.write_json(folder / "simulation.json", manifest)
         st.rerun()
 else:
     a.write("Start a new baseline MS1-only replay.")
