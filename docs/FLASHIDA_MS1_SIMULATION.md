@@ -1,17 +1,16 @@
 # Offline FLASHIda MS1 simulation (developer-only desktop feature)
 
-The standalone Windows FLASHIda simulator can replay a *previously acquired
+The standalone Windows FLASHIda simulator, launched from local FLASHApp on Windows **or WSL**, can replay a *previously acquired
 MS1-only* Thermo RAW or mzML file through the native FLASHIda acquisition
 engine. Its MS2 requests are logged but **not fulfilled** by fragment spectra.
 This is **not** an instrument-control interface and never launches Flash.exe.
 
-This page is available in **local FLASHApp with developer mode unlocked**:
-**FLASHIda → MS1 simulation**. Hosted FLASHApp/Linux cannot use this Windows
-build. The existing real-instrument Acquisition page is unchanged.
+This page is available in **local FLASHApp with developer mode unlocked** (including the preexisting WSL installation at `~/openms-development/FLASHApp`):
+**FLASHIda → MS1 simulation**. Hosted FLASHApp and ordinary Linux without Windows interop cannot use this build. The existing real-instrument Acquisition page is unchanged.
 
 ## Prerequisites
 
-- Windows desktop FLASHApp with working WSL2.
+- Either Windows FLASHApp with WSL2, or the existing FLASHApp running inside WSL2 (`conda activate flashapp-ms1; cd ~/openms-development/FLASHApp`).
 - WSL thesis repository, e.g.
   /mnt/c/Users/langm/PycharmProjects/TDP_master_thesis, checked out with
   tdp_instrument_simulator installed or importable from that directory.
@@ -30,23 +29,24 @@ build. The existing real-instrument Acquisition page is unchanged.
 
 1. In FLASHApp developer settings unlock developer mode and select
    **FLASHIda → MS1 simulation**.
-2. Enter the local Windows path to the precollected AA or GA RAW/mzML file.
+2. Enter the path to the precollected AA or GA RAW/mzML file. In WSL, use `/mnt/c/...`; on Windows, use `C:\...`.
    Do not upload/copy an enormous RAW into Streamlit: the runner accesses the
    source directly through the Windows/WSL shared drive.
-3. Enter the paths to Flash.Simulator.exe and method_cv_m40.json, plus the
+3. Enter the paths to Flash.Simulator.exe and method_cv_m40.json (in WSL use `/mnt/c/dev/FlashIDA/...` and `/mnt/c/flashida_sim/method_cv_m40.json`), plus the
    WSL thesis project directory and conda environment.
 4. Choose FAIMS CV -40 and optionally **100** as the scan limit; a blank
    limit processes the whole run. Click **Run simulation**.
 5. The app starts the **WSL producer first** and waits for its "Prepared"
    message (so cold-cache centroiding cannot make the Windows consumer time
    out). It then launches the Windows native consumer in the **same
-   per-run directory**.
+   per-run directory**. When FLASHApp runs in WSL, it uses native WSL `bash` for the producer and Windows executable interop for the consumer, translating Windows paths before passing them to .NET.
 6. View the status and download commands.tsv, replay_log.tsv,
    consumer_status.json, producer.log, consumer.log, simulation.json and the
    copied method.json.
 
 Replays are preserved in:
-  <workspace>/flashida-ms1-simulation/runs/<UTC timestamp>_<random ID>/
+- WSL: `/mnt/c/flashida_sim/flashapp_runs/<UTC timestamp>_<random ID>/` (configurable in the UI; must remain under `/mnt/<drive>/`)
+- Windows: `<workspace>/flashida-ms1-simulation/runs/<UTC timestamp>_<random ID>/`
 
 The workflow status is "complete" only if the Windows consumer reaches
 state=complete and acknowledges every scan. Requests in commands.tsv with
@@ -97,7 +97,7 @@ manual.
 
 ## Compatibility and limitations
 
-- The WSL conversion assumes local Windows drive letters mounted at /mnt/c,
+- WSL source/method/executable paths must use Linux syntax (`/mnt/c/...`), and the Windows executable must support WSL interop. The conversion assumes local Windows drive letters mounted at /mnt/c,
   /mnt/d etc. UNC/network drives and custom WSL mount roots are not supported.
 - Native MS2 fragmentation, AGC scan response and identification are outside
   this MS1-only simulation. No generated requests are claimed to be acquired.
@@ -108,3 +108,28 @@ manual.
   executable directory.
 - The implementation is covered by platform-independent orchestration tests;
   an actual Windows/WSL end-to-end desktop run still needs validation.
+
+## Reuse the pre-existing WSL FLASHApp installation
+
+In the WSL terminal (not PowerShell):
+
+```bash
+conda activate flashapp-ms1
+cd ~/openms-development/FLASHApp
+git status
+git fetch origin
+git switch feature/flashida-ms1-simulation || git switch --track origin/feature/flashida-ms1-simulation
+git pull --ff-only
+python -m streamlit run app.py local
+```
+
+Open http://localhost:8501 on Windows. The hidden developer page appears after unlocking developer mode in Settings. Enter WSL paths:
+
+- MS1 file: `/mnt/c/Users/langm/PycharmProjects/TDP_master_thesis/data/20260315_Ecoli_SPE_FAIMS1CV_0p5ul_30min_MS1_AA.raw`
+- Simulator: `/mnt/c/dev/FlashIDA/src/Flash.Simulator/bin/x64/Debug/Flash.Simulator.exe`
+- Method: `/mnt/c/flashida_sim/method_cv_m40.json`
+- WSL project: `/mnt/c/Users/langm/PycharmProjects/TDP_master_thesis`
+- Environment: `openms-experiments`, CV `-40`, scan limit `100`
+- Shared output: `/mnt/c/flashida_sim/flashapp_runs`
+
+For experiment design, also use WSL paths to the eight RAW files and to a **new** experiment directory. The page invokes the thesis conda environment natively (without `wsl.exe`) when FLASHApp itself runs in WSL.
