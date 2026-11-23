@@ -156,3 +156,47 @@ def test_one_biological_replicate_per_condition_produces_draft_without_contrast(
     assert result["replicates_by_condition"] == {"acetate": 1, "glucose": 1}
     assert not result["contrast_created"]
     assert not (output / "contrast.tsv").exists()
+
+
+def test_wsl_launches_producer_natively_and_windows_consumer_with_windows_paths(tmp_path):
+    raw = tmp_path / "AA.raw"
+    raw.write_text("test data")
+    with patch.object(sim, "is_wsl", return_value=True), \
+         patch.object(sim, "to_wsl_path", side_effect=lambda x: "/mnt/c/" + Path(str(x)).name):
+        producer = sim.producer_command(
+            project="/mnt/c/Thesis", environment="openms-experiments",
+            input_file=str(raw), run_dir="/mnt/c/flashida_sim/flashapp_runs/r1",
+            cv="-40", max_scans="100")
+        assert producer[:2] == ["bash", "-lc"]
+        assert "tdp_instrument_simulator" in producer[-1]
+        consumer = sim.consumer_command(
+            Path("/mnt/c/dev/FlashIDA/Flash.Simulator.exe"),
+            Path("/mnt/c/flashida_sim/flashapp_runs/r1"))
+        assert consumer[0] == "/mnt/c/dev/FlashIDA/Flash.Simulator.exe"
+        assert consumer[2] == r"C:\flashida_sim\flashapp_runs\r1"
+        assert consumer[3] == r"C:\flashida_sim\flashapp_runs\r1\method.json"
+
+
+def test_wsl_runs_remain_on_shared_ntfs_even_if_flashapp_workspace_is_on_ext4():
+    with patch.object(sim, "is_wsl", return_value=True):
+        assert sim.run_root(Path("/home/langm/openms-development/FLASHApp"), {}) == (
+            Path("/mnt/c/flashida_sim/flashapp_runs"))
+        with pytest.raises(ValueError, match="Windows-mounted drive"):
+            sim.run_root(Path("/home/langm/workspace"),
+                         {"simulation-output-root": "/home/langm/isolated-runs"})
+        root = sim.run_root(Path("/home/langm/workspace"),
+                            {"simulation-output-root": r"C:\flashida_sim\custom"})
+        assert str(root) == "/mnt/c/flashida_sim/custom"
+
+
+def test_wsl_design_command_runs_inside_existing_wsl_conda(tmp_path):
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    with patch.object(sim, "is_wsl", return_value=True), \
+         patch.object(sim, "to_wsl_path", side_effect=lambda path: "/mnt/c/" + Path(str(path)).name):
+        cmd = sim.design_command(
+            project="/mnt/c/Thesis", environment="openms-experiments",
+            raw_dir=str(raw_dir), design_dir=str(tmp_path / "design"))
+    assert cmd[:2] == ["bash", "-lc"]
+    assert "tdp_experiment_design init" in cmd[-1]
+    assert "ecoli-aa-gd" in cmd[-1]
