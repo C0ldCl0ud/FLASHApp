@@ -152,7 +152,7 @@ st.subheader("Experimental design and differential-abundance contrast")
 st.caption("Independent MS1 analysis step: reuse the thesis project's experiment_design "
            "generator. The E. coli preset explicitly maps AA–AD to acetate and GA–GD "
            "to glucose. It writes design.tsv and run_metadata.tsv, plus a "
-           "glucose_vs_acetate contrast.tsv when both conditions are present.")
+           "glucose_vs_acetate contrast.tsv when each condition has at least two biological replicates.")
 with st.form("ecoli-design"):
     raw_dir = st.text_input("Folder containing the eight E. coli MS1 RAW files (Windows path)",
                             placeholder="C:\\path\\data")
@@ -171,9 +171,14 @@ if create:
         st.error(str(error))
     else:
         st.success(f"Design created with {result['runs']} MS1 runs in {result['directory']}.")
+        counts = result.get("replicates_by_condition", {})
+        st.write("Biological replicates:", counts)
         if not result["contrast_created"]:
-            st.warning("The glucose-versus-acetate contrast was not created because "
-                       "both conditions were not present in design.tsv.")
+            st.warning("Contrast not created: both acetate and glucose need at least two "
+                       "biological replicates in the design.")
+        elif counts.get("acetate") != 4 or counts.get("glucose") != 4:
+            st.warning("Contrast created, but the planned 4+4 biological replicates "
+                       "are not all represented; review the design.")
         st.code(result["output"], language=None)
 st.caption("Inspect the biological assignments and validate design.tsv with "
            "experiment_design validate --mode ready after conversion to real mzML paths. "
