@@ -1098,9 +1098,12 @@ class FlashidaSimulationWorkflow(WorkflowManager):
         self.tool_name = "FLASHIda MS1 simulation"
 
     def configure(self) -> None:
+        from src.flashida_simulation import is_wsl
+        on_wsl = is_wsl()
         fields = [
-            ("ms1-source", "Precollected MS1 RAW or mzML (Windows path)",
-             "C:\\path\\sample.raw", "An existing MS1-only RAW or centroided mzML on a drive accessible to WSL."),
+            ("ms1-source", "Precollected MS1 RAW or mzML" + (" (WSL path)" if on_wsl else " (Windows path)"),
+             "/mnt/c/Users/langm/PycharmProjects/TDP_master_thesis/data/20260315_Ecoli_SPE_FAIMS1CV_0p5ul_30min_MS1_AA.raw" if on_wsl else "",
+             "An existing MS1-only RAW or centroided mzML on a Windows drive mounted in WSL."),
             ("simulator-executable", "Flash.Simulator.exe (Windows path)",
              "", "Standalone executable compiled from Flash.Simulator.sln, with matching OpenMS.dll."),
             ("simulation-method", "FLASHIda method JSON (Windows path)",
@@ -1113,6 +1116,9 @@ class FlashidaSimulationWorkflow(WorkflowManager):
              "Use the CV found in the input and matching the FLASHIda method."),
             ("scan-limit", "Maximum MS1 scans (blank = full file)", "",
              "Use 100 for a quick functional test. Blank replays all MS1 scans."),
+            ("simulation-output-root", "Simulation output folder",
+             "/mnt/c/flashida_sim/flashapp_runs" if on_wsl else "",
+             "For WSL, keep replay files on /mnt/c so the Windows native simulator can read them."),
         ]
         for key, label, default, help_text in fields:
             self.ui.input_widget(key=key, name=label, default=default,
