@@ -1083,3 +1083,42 @@ class IdaWorkflow(WorkflowManager):
                 flashida.write_status(self.workflow_dir, status)
                 self.logger.log(f"FLASHIda {'finished' if done else 'failed'} for '{name}.raw'.")
             time.sleep(self.poll_interval)
+
+
+class FlashidaSimulationWorkflow(WorkflowManager):
+    """Local developer-only replay of previously acquired MS1 spectra.
+
+    Separate from IdaWorkflow: no Xcalibur sequence, real instrument Flash.exe
+    or instrument-control libraries are involved.
+    """
+    share_cache = False
+
+    def __init__(self) -> None:
+        super().__init__("FLASHIda MS1 simulation", st.session_state["workspace"])
+        self.tool_name = "FLASHIda MS1 simulation"
+
+    def configure(self) -> None:
+        fields = [
+            ("ms1-source", "Precollected MS1 RAW or mzML (Windows path)",
+             "C:\\path\\sample.raw", "An existing MS1-only RAW or centroided mzML on a drive accessible to WSL."),
+            ("simulator-executable", "Flash.Simulator.exe (Windows path)",
+             "", "Standalone executable compiled from Flash.Simulator.sln, with matching OpenMS.dll."),
+            ("simulation-method", "FLASHIda method JSON (Windows path)",
+             "", "An existing method with precursor_selection.targeting = none."),
+            ("wsl-project", "Thesis project directory in WSL",
+             "", "Absolute /mnt/c/... project directory containing tdp_instrument_simulator."),
+            ("wsl-environment", "WSL conda environment", "openms-experiments",
+             "Environment containing the thesis MS1 replay producer."),
+            ("faims-cv", "FAIMS CV (V, optional)", "-40",
+             "Use the CV found in the input and matching the FLASHIda method."),
+            ("scan-limit", "Maximum MS1 scans (blank = full file)", "",
+             "Use 100 for a quick functional test. Blank replays all MS1 scans."),
+        ]
+        for key, label, default, help_text in fields:
+            self.ui.input_widget(key=key, name=label, default=default,
+                                 widget_type="text", help=help_text, reactive=True)
+
+    def execution(self) -> bool:
+        from src.flashida_simulation import execute
+        return execute(self.parameter_manager.get_parameters_from_json(),
+                       self.workflow_dir, self.logger)
