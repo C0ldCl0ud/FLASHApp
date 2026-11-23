@@ -98,3 +98,35 @@ def test_baseline_rejects_inclusion_method_before_launch(tmp_path):
         with pytest.raises(ValueError, match="baseline"):
             sim.execute(params, tmp_path, Logger())
     assert not (tmp_path / "runs").exists()
+
+
+def test_design_uses_existing_thesis_api_and_creates_only_explicit_contrast(tmp_path):
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    output = tmp_path / "experiment"
+    output.mkdir()
+
+    def fake_run(command, **kwargs):
+        assert command[:2] == ["wsl.exe", "--exec"]
+        assert "tdp_experiment_design init" in command[-1]
+        assert "--preset ecoli-aa-gd" in command[-1]
+        (output / "design.tsv").write_text(
+            "Sample\tMSstats_Condition\nAA\tacetate\nGA\tglucose\n",
+            encoding="utf-8")
+        (output / "run_metadata.tsv").write_text("run_id\nAA\nGA\n", encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0, "generated", "")
+
+    with patch.object(sim, "os", SimpleNamespace(name="nt")), \
+         patch.object(sim, "to_wsl_path", side_effect=lambda path: "/mnt/c/" + Path(str(path)).name), \
+         patch.object(sim.subprocess, "run", side_effect=fake_run):
+        result = sim.create_experiment_design(
+            project="/mnt/c/project", environment="openms-experiments",
+            raw_dir=str(raw_dir), design_dir=str(output))
+
+    assert result["contrast_created"]
+    assert (output / "contrast.tsv").read_text(encoding="utf-8") == (
+        "contrast_id\tcondition_a\tcondition_b\n"
+        "glucose_vs_acetate\tglucose\tacetate\n")
+    with pytest.raises(FileExistsError):
+        sim.design_command(project="/mnt/c/project", environment="openms-experiments",
+                           raw_dir=str(raw_dir), design_dir=str(output))
