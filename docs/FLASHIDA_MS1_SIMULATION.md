@@ -76,7 +76,7 @@ thesis repository. It saves:
 - design.tsv: OpenMS MS1 one-table design with condition and BioReplicate.
 - run_metadata.tsv: separate source/acquisition metadata.
 - contrast.tsv: header contrast_id, condition_a, condition_b and row
-  glucose_vs_acetate, glucose, acetate **if both conditions occur**.
+  glucose_vs_acetate, glucose, acetate **if both conditions have at least two biological replicates**.
 
 The tool refuses to overwrite existing design/contrast files. The E. coli
 preset is explicit: do not use it for unrelated filenames or experiments.
