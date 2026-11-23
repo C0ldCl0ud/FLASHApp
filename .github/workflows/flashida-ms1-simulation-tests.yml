@@ -18,5 +18,10 @@ jobs:
         run: python -m pip install pytest
       - name: Check Python syntax
         run: python -m compileall -q src/flashida_simulation.py src/flashida_experiment.py src/Workflow.py content/FLASHIda/FLASHIdaSimulation.py app.py
-      - name: Test orchestration and safety without instrument DLLs
+      - name: Retrieve thesis experiment-design API
+        run: git clone --quiet --depth 1 --branch feature/instrument_simulator https://github.com/C0ldCl0ud/TDP_master_thesis.git /tmp/flashida-thesis
+
+      - name: Test orchestration, safety and actual OpenMS design generation
+        env:
+          FLASHIDA_THESIS_SOURCE: /tmp/flashida-thesis
         run: python -m pytest -q tests/test_flashida_simulation.py tests/test_flashida_experiment.py
