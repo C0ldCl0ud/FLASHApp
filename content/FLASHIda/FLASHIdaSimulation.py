@@ -5,7 +5,7 @@ import json
 import streamlit as st
 
 from src import flashida, flashida_simulation as simulation
-from src.common.common import page_setup, save_params
+from src.common.common import page_setup, save_params, native_dialog_available, tk_file_dialog
 from src.workflow._log_status import classify_log_outcome
 
 params = page_setup()
@@ -31,6 +31,17 @@ with st.expander("Replay configuration", expanded=not running):
                          "wsl-project", "wsl-environment", "faims-cv", "scan-limit"):
                 st.text_input(label, str(value), disabled=True)
     else:
+        if native_dialog_available() and st.button("📁 Browse precollected MS1 file",
+                                                   key="flashida-sim-pick-ms1"):
+            picked = tk_file_dialog("Select MS1-only RAW or mzML file",
+                                    [("MS1 RAW", "*.raw *.RAW"),
+                                     ("centroided mzML", "*.mzML *.mzml")],
+                                    str(Path.home()), multiple=False)
+            if picked:
+                st.session_state[
+                    f"{wf.parameter_manager.param_prefix}ms1-source"
+                ] = str(picked[0])
+                st.rerun()
         wf.configure()
         wf.parameter_manager.save_parameters()
 
