@@ -23,6 +23,12 @@ to add to the simulation acquisition table. Each file has its own editable row:
 | Bio. replicate | Positive ID unique between biological samples |
 | FAIMS CV (V) | Compensation voltage to replay, e.g. -40 |
 
+The source and contrast tables are edited inside a **single Streamlit form**.
+Type all annotations and click **Save acquisition design** once. The page does
+not rerun or rewrite the table after each cell edit; this avoids losing the
+first value to Streamlit's stale edit state. Save the draft before clicking
+other acquisition actions such as Add files or Run simulation.
+
 All rows are saved with the acquisition configuration, not in a later
 disconnected form. Different files of the same biological sample can retain
 the same sample/replicate combination, as technical injections.
