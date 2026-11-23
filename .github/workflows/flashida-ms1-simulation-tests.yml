@@ -1,0 +1,22 @@
+name: FLASHIda MS1 replay tests
+
+on:
+  push:
+    branches:
+      - feature/flashida-ms1-simulation
+  workflow_dispatch:
+
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install lightweight test dependencies
+        run: python -m pip install pytest
+      - name: Check Python syntax
+        run: python -m compileall -q src/flashida_simulation.py src/Workflow.py content/FLASHIda/FLASHIdaSimulation.py app.py
+      - name: Test orchestration and safety without instrument DLLs
+        run: python -m pytest -q tests/test_flashida_simulation.py
