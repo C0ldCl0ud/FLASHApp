@@ -12,15 +12,32 @@ if not flashida.available():
     st.info('FLASHIda is a developer feature of the desktop app.')
     st.stop()
 
-from src.Workflow import IdaWorkflow  # noqa: E402
+from src.Workflow import IdaWorkflow, FlashidaSimulationWorkflow  # noqa: E402
 from src.render import ida_runs  # noqa: E402
 
 wf = IdaWorkflow()
+sim_wf = FlashidaSimulationWorkflow()
 running = wf.get_workflow_status()['running']
+sim_running = sim_wf.get_workflow_status()['running']
 wf_params = wf.parameter_manager.get_parameters_from_json()
 
 st.title('FLASHIda acquisition')
-st.caption('🛠️ Developer feature · runs on the instrument PC')
+st.caption('🛠️ Developer feature · choose an instrument run or offline MS1 simulation')
+mode_key = 'flashida-acquisition-source'
+if mode_key not in st.session_state:
+    st.session_state[mode_key] = 'Simulation' if sim_running else 'Instrument'
+mode = st.segmented_control(
+    'Acquisition source', ['Instrument', 'Simulation'],
+    key=mode_key, disabled=running or sim_running,
+    help='Instrument watches a Thermo/Xcalibur sequence; Simulation replays precollected MS1-only RAW/mzML.'
+)
+if mode == 'Simulation':
+    from content.FLASHIda.FLASHIdaSimulation import render_simulation
+    render_simulation()
+    save_params(params)
+    st.stop()
+
+st.caption('Instrument mode · runs on the instrument PC and watches incoming RAW files')
 
 configured = all(str(wf_params.get(k) or '').strip() for k in ('executable', 'raw-files', 'method-folder'))
 with st.expander('Instrument PC', expanded=not configured and not running):
