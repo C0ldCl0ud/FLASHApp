@@ -28,7 +28,8 @@ with st.expander("Replay configuration", expanded=not running):
         st.caption("Stop the replay before changing its inputs.")
         for label, value in wf.parameter_manager.get_parameters_from_json().items():
             if label in ("ms1-source", "simulator-executable", "simulation-method",
-                         "wsl-project", "wsl-environment", "faims-cv", "scan-limit"):
+                         "wsl-project", "wsl-environment", "faims-cv", "scan-limit",
+                         "simulation-output-root"):
                 st.text_input(label, str(value), disabled=True)
     else:
         if native_dialog_available() and st.button("📁 Browse precollected MS1 file",
@@ -52,7 +53,7 @@ a, b = st.columns([4, 1])
 if running:
     a.write("Replay in progress. The results below update while the native engine runs.")
     if b.button("⏹ Stop replay", use_container_width=True):
-        active = [folder for folder in simulation.list_runs(wf.workflow_dir)
+        active = [folder for folder in simulation.list_runs(wf.workflow_dir, wf.parameter_manager.get_parameters_from_json())
                   if simulation.read_run(folder).get("state") in ("preparing", "running")]
         for folder in active:
             simulation.stop_children(folder)
@@ -90,7 +91,7 @@ else:
             simulation.producer_command(
                 project=str(config["wsl-project"]),
                 environment=str(config["wsl-environment"]),
-                input_file=str(source), run_dir=str(wf.workflow_dir / "runs" / "preflight"),
+                input_file=str(source), run_dir=str(simulation.run_root(wf.workflow_dir, config) / "preflight"),
                 cv=str(config.get("faims-cv") or ""),
                 max_scans=str(config.get("scan-limit") or ""))
         except (ValueError, OSError, json.JSONDecodeError) as error:
@@ -102,7 +103,7 @@ else:
 
 @st.fragment(run_every="3s")
 def show_results():
-    runs = simulation.list_runs(wf.workflow_dir)
+    runs = simulation.list_runs(wf.workflow_dir, wf.parameter_manager.get_parameters_from_json())
     if not runs:
         st.caption("No simulations have been run in this workspace yet.")
         return
@@ -154,10 +155,12 @@ st.caption("Independent MS1 analysis step: reuse the thesis project's experiment
            "to glucose. It writes design.tsv and run_metadata.tsv, plus a "
            "glucose_vs_acetate contrast.tsv when each condition has at least two biological replicates.")
 with st.form("ecoli-design"):
-    raw_dir = st.text_input("Folder containing the eight E. coli MS1 RAW files (Windows path)",
-                            placeholder="C:\\path\\data")
-    output_dir = st.text_input("Experimental design output folder (Windows path)",
-                               placeholder="C:\\path\\experiments\\ecoli_full")
+    raw_dir = st.text_input("Folder containing the eight E. coli MS1 RAW files",
+                            placeholder="/mnt/c/Users/langm/PycharmProjects/TDP_master_thesis/data"
+                            if simulation.is_wsl() else "C:\\path\\data")
+    output_dir = st.text_input("Experimental design output folder",
+                               placeholder="/mnt/c/Users/langm/PycharmProjects/TDP_master_thesis/experiments/ecoli_flashapp_draft"
+                               if simulation.is_wsl() else "C:\\path\\experiments\\ecoli_full")
     create = st.form_submit_button("Create E. coli design and contrast",
                                    disabled=running)
 if create:
