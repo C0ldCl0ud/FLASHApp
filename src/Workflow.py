@@ -1125,6 +1125,6 @@ class FlashidaSimulationWorkflow(WorkflowManager):
                                  widget_type="text", help=help_text, reactive=True)
 
     def execution(self) -> bool:
-        from src.flashida_simulation import execute
-        return execute(self.parameter_manager.get_parameters_from_json(),
-                       self.workflow_dir, self.logger)
+        from src.flashida_simulation import execute_batch
+        return execute_batch(self.parameter_manager.get_parameters_from_json(),
+                             self.workflow_dir, self.logger)
