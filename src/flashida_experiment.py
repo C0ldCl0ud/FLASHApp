@@ -182,11 +182,10 @@ def generate_design(plan: dict, design_dir: Path, *, project_dir: str) -> dict:
     # These are explicitly chosen MS1 acquisitions, not filenames inferred
     # from an 'MS1' token. The thesis generator marks unknown suffixes UNKNOWN.
     # Restore the explicit known acquisition type and create missing design rows.
-    by_sample = {r["sample_id"]: r for r in plan["runs"]}
     from tdp_experiment_design.core import DESIGN_COLUMNS
     experiment.design_rows = []
-    for index, metadata in enumerate(experiment.run_rows, 1):
-        source = source_rows[metadata["run_id"].casefold()]
+    sorted_sources = sorted(plan["runs"], key=lambda r: Path(r["file_path"]).stem.casefold())
+    for index, (metadata, source) in enumerate(zip(experiment.run_rows, sorted_sources), 1):
         metadata["acquisition_type"] = "MS1_ONLY"
         if source["faims_cv"]:
             metadata["faims_cv_volts"] = json.dumps([float(source["faims_cv"])])
