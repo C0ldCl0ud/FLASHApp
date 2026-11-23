@@ -86,14 +86,24 @@ def create_experiment_design(*, project: str, environment: str, raw_dir: str,
         raise RuntimeError("Design tool completed without its two expected output files.")
     with (root / "design.tsv").open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f, delimiter="\t"))
-    conditions = {r.get("MSstats_Condition") for r in rows}
+    replicate_ids: dict[str, set[str]] = {}
+    for row in rows:
+        condition = row.get("MSstats_Condition", "")
+        replicate = row.get("MSstats_BioReplicate", "")
+        if condition and replicate:
+            replicate_ids.setdefault(condition, set()).add(replicate)
     contrast = root / "contrast.tsv"
-    if {"acetate", "glucose"} <= conditions:
+    # The Welch test requires at least two biological replicates on each side.
+    # A partially discovered design remains useful as a draft, but must not
+    # silently create a contrast which the analysis cannot test.
+    if all(len(replicate_ids.get(name, ())) >= 2 for name in ("acetate", "glucose")):
         with contrast.open("x", encoding="utf-8", newline="") as f:
             writer = csv.writer(f, delimiter="\t", lineterminator="\n")
             writer.writerow(["contrast_id", "condition_a", "condition_b"])
             writer.writerow(["glucose_vs_acetate", "glucose", "acetate"])
-    return {"runs": len(rows), "conditions": sorted(conditions - {None}),
+    return {"runs": len(rows), "conditions": sorted(replicate_ids),
+            "replicates_by_condition": {name: len(replicates) for name, replicates
+                                         in sorted(replicate_ids.items())},
             "contrast_created": contrast.exists(), "directory": str(root),
             "output": result.stdout[-4000:]}
 
