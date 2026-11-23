@@ -3,6 +3,7 @@ import csv
 import json
 from pathlib import Path
 import subprocess
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -93,7 +94,7 @@ def test_baseline_rejects_inclusion_method_before_launch(tmp_path):
     class Logger:
         def log(self, text):
             pass
-    with patch.object(sim.os, "name", "nt"):
+    with patch.object(sim, "os", SimpleNamespace(name="nt")):
         with pytest.raises(ValueError, match="baseline"):
             sim.execute(params, tmp_path, Logger())
     assert not (tmp_path / "runs").exists()
