@@ -45,8 +45,12 @@ def run_root(workflow_dir: Path, params: dict | None = None) -> Path:
     """Preserve run data on NTFS for WSL + Windows producer/consumer sharing."""
     configured = str((params or {}).get("simulation-output-root") or "").strip()
     if is_wsl():
-        path = Path(to_wsl_path(configured) if configured
-                    else "/mnt/c/flashida_sim/flashapp_runs")
+        try:
+            path = Path(to_wsl_path(configured) if configured
+                        else "/mnt/c/flashida_sim/flashapp_runs")
+        except ValueError as exc:
+            raise ValueError("Simulation output must use a Windows-mounted drive such as "
+                             "/mnt/c/flashida_sim/flashapp_runs.") from exc
         # Never use the WSL ext4 workspace: Windows status updates need
         # the same shared local NTFS drive as the Python producer.
         to_windows_path(path)
@@ -322,7 +326,9 @@ def stop_children(folder: Path) -> None:
             p = psutil.Process(pid)
             command = " ".join(p.cmdline()).lower()
             run_marker = (to_windows_path(folder) if is_wsl() and
-                          key == "consumer_pid" else str(folder)).lower()
+                          key == "consumer_pid" else to_wsl_path(folder)
+                          if os.name == "nt" and key == "producer_pid"
+                          else str(folder)).lower()
             if needle not in command or run_marker not in command:
                 continue
             if is_wsl():
