@@ -254,7 +254,13 @@ def stop_children(folder: Path) -> None:
             continue
         try:
             p = psutil.Process(pid)
-            if needle not in (p.name() + " " + " ".join(p.cmdline())).lower():
+            command = " ".join(p.cmdline()).lower()
+            identity = (p.name() + " " + command).lower()
+            # A PID can be reused. Confirm both the expected executable and
+            # *this* run directory before terminating its process tree.
+            marker = (to_wsl_path(folder) if key == "producer_pid"
+                      else str(folder)).lower()
+            if needle not in identity or marker not in command:
                 continue
             subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"],
                            capture_output=True, timeout=10, check=False)
